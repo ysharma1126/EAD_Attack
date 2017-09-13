@@ -1,6 +1,0 @@
-__pycache__/
-cifar-10-batches-bin
-cifar-data.tar.gz
-models/cifar*
-models/mnist-distilled*
-data/
