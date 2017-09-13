@@ -117,9 +117,9 @@ def main(args):
             train(CIFAR(), "models/cifar", [64, 64, 128, 128, 256, 256], num_epochs=50)
 
     if (args['adversarial']):
-        cwl2 = np.load('train/cw_l2_train.npy')
-        cwl1 = np.load('train/cw_l1_train.npy')
-        cwen = np.load('train/cw_e_train.npy')
+        cwl2 = np.load('train/L2_train.npy')
+        cwl1 = np.load('train/L1_train.npy')
+        cwen = np.load('train/EN_train.npy')
 
         labels = np.load('train/labels_train.npy')
         cwl2l1 = np.concatenate((cwl2,cwl1), axis=0)
