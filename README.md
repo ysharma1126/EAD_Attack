@@ -87,7 +87,7 @@ python3 test_attack.py -d cifar -tp 100
 Run the EN-oriented attack with 20 binary search steps, max 10,000 iterations each binary search step, and abort early (Greatly speeds up attack, hurts performance)
 
 ```
-python3 test_attack.py -a EN -bs 20 -m 10000 -ae
+python3 test_attack.py -bs 20 -m 10000 -ae
 ```
 
 Save original and adversarial images in the saves directory
