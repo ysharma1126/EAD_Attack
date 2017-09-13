@@ -179,7 +179,7 @@ class EADEN:
             batch = imgs[:batch_size]
             batchlab = labs[:batch_size]
     
-            bestl2 = [1e10]*batch_size
+            besten = [1e10]*batch_size
             bestscore = [-1]*batch_size
 
             # The last iteration (if we run many steps) repeat the search once.

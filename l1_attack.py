@@ -179,7 +179,7 @@ class EADL1:
             batch = imgs[:batch_size]
             batchlab = labs[:batch_size]
     
-            bestl2 = [1e10]*batch_size
+            bestl1 = [1e10]*batch_size
             bestscore = [-1]*batch_size
 
             # The last iteration (if we run many steps) repeat the search once.
