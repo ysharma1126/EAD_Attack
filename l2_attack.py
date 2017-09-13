@@ -11,18 +11,19 @@ import numpy as np
 
 BINARY_SEARCH_STEPS = 9  # number of times to adjust the constant with binary search
 MAX_ITERATIONS = 10000   # number of iterations to perform gradient descent
-ABORT_EARLY = True       # if we stop improving, abort gradient descent early
+ABORT_EARLY = False       # if we stop improving, abort gradient descent early
 LEARNING_RATE = 1e-2     # larger values converge faster to less accurate results
 TARGETED = True          # should we target one specific class? or just be wrong?
 CONFIDENCE = 0           # how strong the adversarial example should be
 INITIAL_CONST = 1e-3     # the initial constant c to pick as a first guess
+BETA = 0
 
 class CarliniL2:
     def __init__(self, sess, model, batch_size=1, confidence = CONFIDENCE,
                  targeted = TARGETED, learning_rate = LEARNING_RATE,
                  binary_search_steps = BINARY_SEARCH_STEPS, max_iterations = MAX_ITERATIONS,
                  abort_early = ABORT_EARLY, 
-                 initial_const = INITIAL_CONST):
+                 initial_const = INITIAL_CONST, beta = BETA):
         """
         The L_2 optimized attack. 
 
@@ -58,6 +59,7 @@ class CarliniL2:
         self.CONFIDENCE = confidence
         self.initial_const = initial_const
         self.batch_size = batch_size
+        self.beta = beta
 
         self.repeat = binary_search_steps >= 10
 
@@ -160,7 +162,7 @@ class CarliniL2:
         o_bestattack = [np.zeros(imgs[0].shape)]*batch_size
         
         for outer_step in range(self.BINARY_SEARCH_STEPS):
-            print(o_bestl2)
+            #print(o_bestl2)
             # completely reset adam's internal state.
             self.sess.run(self.init)
             batch = imgs[:batch_size]
@@ -186,9 +188,10 @@ class CarliniL2:
                                                          self.newimg])
 
                 # print out the losses every 10%
+                """
                 if iteration%(self.MAX_ITERATIONS//10) == 0:
                     print(iteration,self.sess.run((self.loss,self.loss1,self.loss2)))
-
+                """
                 # check if we should abort search if we're getting nowhere.
                 if self.ABORT_EARLY and iteration%(self.MAX_ITERATIONS//10) == 0:
                     if l > prev*.9999:

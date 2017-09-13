@@ -1,3 +1,4 @@
+## Modified by Huan Zhang for the updated Inception-v3 model (inception_v3_2016_08_28.tar.gz)
 ## Modified by Nicholas Carlini to match model structure for attack code.
 ## Original copyright license follows.
 
@@ -42,6 +43,7 @@ from __future__ import print_function
 import os.path
 import re
 import sys
+import random
 import tarfile
 import scipy.misc
 
@@ -50,6 +52,8 @@ from six.moves import urllib
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
+
+from PIL import Image
 
 # classify_image_graph_def.pb:
 #   Binary representation of the GraphDef protocol buffer.
@@ -141,7 +145,8 @@ def create_graph():
   """Creates a graph from saved GraphDef file and returns a saver."""
   # Creates graph from saved graph_def.pb.
   with tf.gfile.FastGFile(os.path.join(
-      FLAGS.model_dir, 'classify_image_graph_def.pb'), 'rb') as f:
+    #  FLAGS.model_dir, 'classify_image_graph_def.pb'), 'rb') as f:
+      FLAGS.model_dir, 'frozen_inception_v3.pb'), 'rb') as f:
     graph_def = tf.GraphDef()
     graph_def.ParseFromString(f.read())
     #for line in repr(graph_def).split("\n"):
@@ -151,7 +156,7 @@ def create_graph():
 
 
 def run_inference_on_image(image):
-  """Runs inference on an image.
+  """Runs inference on an image. (Not updated, not working for inception v3 20160828)
 
   Args:
     image: Image file name.
@@ -198,24 +203,73 @@ def run_inference_on_image(image):
       score = predictions[node_id]
       print('%s (score = %.5f)' % (human_string, score))
 
+class InceptionModelPrediction:
+  def __init__(self, sess, use_log = False):
+    self.sess = sess
+    self.use_log = use_log
+    if self.use_log:
+      output_name = 'InceptionV3/Predictions/Softmax:0'
+    else:
+      output_name = 'InceptionV3/Predictions/Reshape:0'
+    self.img = tf.placeholder(tf.float32, (None, 299,299,3))
+    self.softmax_tensor = tf.import_graph_def(
+            sess.graph.as_graph_def(),
+            input_map={'input:0': self.img},
+            return_elements=[output_name])
+  def predict(self, dat):
+    dat = np.squeeze(dat)
+    # scaled = (0.5 + dat) * 255
+    scaled = dat.reshape((1,) + dat.shape)
+    # print(scaled.shape)
+    predictions = self.sess.run(self.softmax_tensor,
+                         {self.img: scaled})
+    predictions = np.squeeze(predictions)
+    return predictions
+    # Creates node ID --> English string lookup.
+    node_lookup = NodeLookup()
+    top_k = predictions.argsort()#[-FLAGS.num_top_predictions:][::-1]
+    for node_id in top_k:
+      print('id',node_id)
+      human_string = node_lookup.id_to_string(node_id)
+      score = predictions[node_id]
+      print('%s (score = %.5f)' % (human_string, score))
+    return top_k[-1]
+
+
 CREATED_GRAPH = False
 class InceptionModel:
   image_size = 299
-  num_labels = 1008
+  num_labels = 1001
   num_channels = 3
-  def __init__(self, sess):
+  def __init__(self, sess, use_log = False):
     global CREATED_GRAPH
     self.sess = sess
+    self.use_log = use_log
     if not CREATED_GRAPH:
       create_graph()
       CREATED_GRAPH = True
+    self.model = InceptionModelPrediction(sess, use_log)
 
   def predict(self, img):
-    scaled = (0.5+tf.reshape(img,((299,299,3))))*255
-    softmax_tensor = tf.import_graph_def(
-      self.sess.graph.as_graph_def(),
-      input_map={'Cast:0': scaled},
-      return_elements=['softmax/logits:0'])
+    if self.use_log:
+      output_name = 'InceptionV3/Predictions/Softmax:0'
+    else:
+      output_name = 'InceptionV3/Predictions/Reshape:0'
+    # scaled = (0.5+tf.reshape(img,((299,299,3))))*255
+    # scaled = (0.5+img)*255
+    if img.shape.as_list()[0]:
+      # check if a shape has been specified explicitly
+      shape = (int(img.shape[0]), 1001)
+      softmax_tensor = tf.import_graph_def(
+        self.sess.graph.as_graph_def(),
+        input_map={'input:0': img, 'InceptionV3/Predictions/Shape:0': shape},
+        return_elements=[output_name])
+    else:
+      # placeholder shape
+      softmax_tensor = tf.import_graph_def(
+        self.sess.graph.as_graph_def(),
+        input_map={'input:0': img},
+        return_elements=[output_name])
     return softmax_tensor[0]
   
 
@@ -237,30 +291,73 @@ def maybe_download_and_extract():
     print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
   tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
+def show(img, name = "output.png"):
+  """
+  Show MNSIT digits in the console.
+  """
+  #np.save('img', img)
+  fig = (img + 0.5)*255
+  fig = fig.astype(np.uint8).squeeze()
+  pic = Image.fromarray(fig)
+  # pic.resize((512,512), resample=PIL.Image.BICUBIC)
+  pic.save(name)
+
 
 def main(_):
   maybe_download_and_extract()
   image = (FLAGS.image_file if FLAGS.image_file else
            os.path.join(FLAGS.model_dir, 'cropped_panda.jpg'))
-  run_inference_on_image(image)
-
+  # image = "/home/huan/projects/adversarial/nn_robust_attacks/original_0.png"
+  image = "../imagenetdata/imgs/598.00032612.jpg"
+  image = "../imagenetdata/imgs/49.00000541.jpg"
+  # run_inference_on_image(image)
+  create_graph()
+  with tf.Session() as sess:
+    dat = np.array(scipy.misc.imresize(scipy.misc.imread(image),(299,299)), dtype = np.float32)
+    dat /= 255.0
+    dat -= 0.5
+    # print(dat)
+    model = InceptionModelPrediction(sess, True)
+    predictions = model.predict(dat)
+    print(predictions.shape)
+    # Creates node ID --> English string lookup.
+    node_lookup = NodeLookup()
+    top_k = np.asscalar(np.argmax(predictions))#[-FLAGS.num_top_predictions:][::-1]
+    #suffix = "id{}_prev{}_{}".format(true_ids[j], prev_id, node_lookup.id_to_string(prev_id))
+    show(dat, "./saves/transfer/inputs/{}.png".format(node_lookup.id_to_string(top_k)))
+    #print(top_k.shape)
+    """
+    for node_id in top_k:
+      print('id',node_id)
+      human_string = node_lookup.id_to_string(node_id)
+      score = predictions[node_id]
+      print('%s (score = %.5f)' % (human_string, score))
+    """
 
 def readimg(ff):
   f = "../imagenetdata/imgs/"+ff
-  img = np.array(scipy.misc.imresize(scipy.misc.imread(f),(299,299)),dtype=np.float32)/255-.5
+  img = scipy.misc.imread(f)
+  # skip small images (image should be at least 299x299)
+  if img.shape[0] < 299 or img.shape[1] < 299:
+    return None
+  img = np.array(scipy.misc.imresize(img,(299,299)),dtype=np.float32)/255-.5
   if img.shape != (299, 299, 3):
     return None
   return [img, int(ff.split(".")[0])]
 
 class ImageNet:
-  def __init__(self):
+  def __init__(self, seed):
     from multiprocessing import Pool
     pool = Pool(8)
-    r = pool.map(readimg, os.listdir("../imagenetdata/imgs/")[:200])
+    file_list = sorted(os.listdir("../imagenetdata/imgs/"))
+    random.seed(seed)
+    r = pool.map(readimg, file_list[:2000])
+    random.shuffle(file_list)
+    #print(file_list[:200])
     r = [x for x in r if x != None]
     test_data, test_labels = zip(*r)
     self.test_data = np.array(test_data)
-    self.test_labels = np.zeros((len(test_labels), 1008))
+    self.test_labels = np.zeros((len(test_labels), 1001))
     self.test_labels[np.arange(len(test_labels)), test_labels] = 1
 
   
