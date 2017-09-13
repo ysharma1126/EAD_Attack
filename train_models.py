@@ -110,7 +110,7 @@ def main(args):
     if not os.path.isdir('models'):
         os.makedirs('models')
 
-    if(not (args['adversarial'] and args['defensive'])):
+    if(not (args['adversarial'] or args['defensive'])):
         if(args['dataset'] == "mnist" or args['dataset'] == "all"):
             train(MNIST(), "models/mnist", [32, 32, 64, 64, 200, 200], num_epochs=50)
         if(args['dataset'] == 'cifar' or args['dataset'] == 'all'):
