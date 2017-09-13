@@ -53,8 +53,6 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
-from PIL import Image
-
 # classify_image_graph_def.pb:
 #   Binary representation of the GraphDef protocol buffer.
 # imagenet_synset_to_human_label_map.txt:
@@ -72,7 +70,7 @@ tf.app.flags.DEFINE_integer('num_top_predictions', 5,
                             """Display this many predictions.""")
 
 # pylint: disable=line-too-long
-DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
+DATA_URL = 'http://jaina.cs.ucdavis.edu/datasets/adv/imagenet/inception_v3_2016_08_28_frozen.tar.gz'
 # pylint: enable=line-too-long
 
 
@@ -80,17 +78,13 @@ class NodeLookup(object):
   """Converts integer node ID's to human readable labels."""
 
   def __init__(self,
-               label_lookup_path=None,
-               uid_lookup_path=None):
+               label_lookup_path=None):
     if not label_lookup_path:
       label_lookup_path = os.path.join(
-          FLAGS.model_dir, 'imagenet_2012_challenge_label_map_proto.pbtxt')
-    if not uid_lookup_path:
-      uid_lookup_path = os.path.join(
-          FLAGS.model_dir, 'imagenet_synset_to_human_label_map.txt')
-    self.node_lookup = self.load(label_lookup_path, uid_lookup_path)
+          FLAGS.model_dir, 'labels.txt')
+    self.node_lookup = self.load(label_lookup_path)
 
-  def load(self, label_lookup_path, uid_lookup_path):
+  def load(self, label_lookup_path):
     """Loads a human readable English name for each softmax node.
 
     Args:
@@ -100,38 +94,18 @@ class NodeLookup(object):
     Returns:
       dict from integer node ID to human-readable string.
     """
-    if not tf.gfile.Exists(uid_lookup_path):
-      tf.logging.fatal('File does not exist %s', uid_lookup_path)
     if not tf.gfile.Exists(label_lookup_path):
       tf.logging.fatal('File does not exist %s', label_lookup_path)
 
-    # Loads mapping from string UID to human-readable string
-    proto_as_ascii_lines = tf.gfile.GFile(uid_lookup_path).readlines()
-    uid_to_human = {}
-    p = re.compile(r'[n\d]*[ \S,]*')
-    for line in proto_as_ascii_lines:
-      parsed_items = p.findall(line)
-      uid = parsed_items[0]
-      human_string = parsed_items[2]
-      uid_to_human[uid] = human_string
-
     # Loads mapping from string UID to integer node ID.
-    node_id_to_uid = {}
+    node_id_to_name = {}
     proto_as_ascii = tf.gfile.GFile(label_lookup_path).readlines()
     for line in proto_as_ascii:
-      if line.startswith('  target_class:'):
-        target_class = int(line.split(': ')[1])
-      if line.startswith('  target_class_string:'):
-        target_class_string = line.split(': ')[1]
-        node_id_to_uid[target_class] = target_class_string[1:-2]
-
-    # Loads the final mapping of integer node ID to human-readable string
-    node_id_to_name = {}
-    for key, val in node_id_to_uid.items():
-      if val not in uid_to_human:
-        tf.logging.fatal('Failed to locate: %s', val)
-      name = uid_to_human[val]
-      node_id_to_name[key] = name
+      if line:
+        words = line.split(':')
+        target_class = int(words[0])
+        name = words[1]
+        node_id_to_name[target_class] = name
 
     return node_id_to_name
 
@@ -291,25 +265,11 @@ def maybe_download_and_extract():
     print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
   tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
-def show(img, name = "output.png"):
-  """
-  Show MNSIT digits in the console.
-  """
-  #np.save('img', img)
-  fig = (img + 0.5)*255
-  fig = fig.astype(np.uint8).squeeze()
-  pic = Image.fromarray(fig)
-  # pic.resize((512,512), resample=PIL.Image.BICUBIC)
-  pic.save(name)
-
 
 def main(_):
   maybe_download_and_extract()
   image = (FLAGS.image_file if FLAGS.image_file else
            os.path.join(FLAGS.model_dir, 'cropped_panda.jpg'))
-  # image = "/home/huan/projects/adversarial/nn_robust_attacks/original_0.png"
-  image = "../imagenetdata/imgs/598.00032612.jpg"
-  image = "../imagenetdata/imgs/49.00000541.jpg"
   # run_inference_on_image(image)
   create_graph()
   with tf.Session() as sess:
@@ -319,20 +279,15 @@ def main(_):
     # print(dat)
     model = InceptionModelPrediction(sess, True)
     predictions = model.predict(dat)
-    print(predictions.shape)
     # Creates node ID --> English string lookup.
     node_lookup = NodeLookup()
-    top_k = np.asscalar(np.argmax(predictions))#[-FLAGS.num_top_predictions:][::-1]
-    #suffix = "id{}_prev{}_{}".format(true_ids[j], prev_id, node_lookup.id_to_string(prev_id))
-    show(dat, "./saves/transfer/inputs/{}.png".format(node_lookup.id_to_string(top_k)))
-    #print(top_k.shape)
-    """
+    top_k = predictions.argsort()#[-FLAGS.num_top_predictions:][::-1]
     for node_id in top_k:
       print('id',node_id)
       human_string = node_lookup.id_to_string(node_id)
       score = predictions[node_id]
       print('%s (score = %.5f)' % (human_string, score))
-    """
+
 
 def readimg(ff):
   f = "../imagenetdata/imgs/"+ff
@@ -346,14 +301,13 @@ def readimg(ff):
   return [img, int(ff.split(".")[0])]
 
 class ImageNet:
-  def __init__(self, seed):
+  def __init__(self):
     from multiprocessing import Pool
     pool = Pool(8)
     file_list = sorted(os.listdir("../imagenetdata/imgs/"))
-    random.seed(seed)
-    r = pool.map(readimg, file_list[:2000])
     random.shuffle(file_list)
-    #print(file_list[:200])
+    r = pool.map(readimg, file_list[:200])
+    print(file_list[:200])
     r = [x for x in r if x != None]
     test_data, test_labels = zip(*r)
     self.test_data = np.array(test_data)
