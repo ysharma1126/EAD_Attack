@@ -8,7 +8,7 @@ Experimental results on MNIST, CIFAR10, and ImageNet show that EAD can yield a d
 
 For more details, please see our paper:
 
-[EAD: Elastic-Net Attacks to Deep Neural Networks via Adversarial Examples](Will be on Arxiv soon)
+[EAD: Elastic-Net Attacks to Deep Neural Networks via Adversarial Examples](https://arxiv.org/abs/1708.03999)
 by Yash Sharma\*, Pin-Yu Chen\*, Huan Zhang, Jinfeng Yi, Cho-Jui Hsieh
 
 \* Equal contribution
