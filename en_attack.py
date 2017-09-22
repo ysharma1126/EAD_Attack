@@ -215,7 +215,7 @@ class EADEN:
                 # adjust the best result found so far
                 for e,(en,sc,ii) in enumerate(zip(elastic,scores,nimg)):
                     if en < besten[e] and compare(sc, np.argmax(batchlab[e])):
-                        bestl1[e] = l1
+                        besten[e] = en
                         bestscore[e] = np.argmax(sc)
                     if en < o_besten[e] and compare(sc, np.argmax(batchlab[e])):
                         o_besten[e] = en
