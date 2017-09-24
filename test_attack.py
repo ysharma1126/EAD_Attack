@@ -31,7 +31,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 
-def save(img, name = "output.png"):
+def show(img, name = "output.png"):
 
 	fig = (img + 0.5)*255
 	fig = fig.astype(np.uint8).squeeze()
