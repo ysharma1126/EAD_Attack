@@ -283,13 +283,14 @@ def readimg(ff):
   return [img, int(ff.split(".")[0])]
 
 class ImageNet:
-  def __init__(self):
+  def __init__(self, seed):
     from multiprocessing import Pool
     pool = Pool(8)
     file_list = sorted(os.listdir("../imagenetdata/imgs/"))
+    random.seed(seed)
+    r = pool.map(readimg, file_list[:2000])
     random.shuffle(file_list)
-    r = pool.map(readimg, file_list[:200])
-    print(file_list[:200])
+    #print(file_list[:200])
     r = [x for x in r if x != None]
     test_data, test_labels = zip(*r)
     self.test_data = np.array(test_data)
