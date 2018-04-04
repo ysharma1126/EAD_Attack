@@ -130,20 +130,20 @@ def main(args):
 		if (args['temp'] and args['dataset'] == 'cifar'):
 			model = CIFARModel("models/cifar-distilled-"+str(args['temp']), sess)
 
-		inputs, targets, labels, true_ids = generate_data(data, model, samples=args['numimg'], inception=inception, handpick=handpick, train=args['train'], 
+		inputs, targets, labels, true_ids = generate_data(data, model, samples=args['numimg'], targeted = not args['untargeted'], inception=inception, handpick=handpick, train=args['train'], 
 			seed=args['seed'])
 		timestart = time.time()
 		if (args['attack'] == 'L2'):
 			attack = CarliniL2(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
-				binary_search_steps=args['binary_steps'], beta=args['beta'], abort_early=args['abort_early'])
+				binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'L1'):
 			attack = EADL1(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
-				binary_search_steps=args['binary_steps'], beta=args['beta'], abort_early=args['abort_early'])
+				binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'EN'):
 			attack = EADEN(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
-				binary_search_steps=args['binary_steps'], beta=args['beta'], abort_early=args['abort_early'])
+				binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
 			adv = attack.attack(inputs, targets)
 
 		"""If untargeted, pass labels instead of targets"""
@@ -305,6 +305,7 @@ if __name__ == "__main__":
 	import argparse
 	parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("-d", "--dataset", choices=["mnist", "cifar", "imagenet"], default="mnist", help="dataset to use")
+	parser.add_argument("-u", "--untargeted", action='store_true', help= "run non-targeted instead of targeted attack)
 	parser.add_argument("-tr", "--train", action='store_true', help="save adversarial images generated from train set")
 	parser.add_argument("-tp", "--temp", type=int, default=0, 
 		help="attack defensively distilled network trained with this temperature")
