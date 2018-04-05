@@ -15,7 +15,7 @@ by Yash Sharma\*, Pin-Yu Chen\*, Huan Zhang, Jinfeng Yi, Cho-Jui Hsieh (AAAI 201
 
 The experiment code is based on Carlini and Wagner's L2 attack. 
 The inception model is updated to a new version (`inception_v3_2016_08_28.tar.gz`).
-The attack (with EN rule) can also be found in the [Cleverhans Repository](http://cleverhans.readthedocs.io/en/latest/_modules/cleverhans/attacks.html#ElasticNetMethod)
+The attack (with EN rule) can also be found in the [Cleverhans Repository](http://cleverhans.readthedocs.io/en/latest/_modules/cleverhans/attacks.html#ElasticNetMethod).
 
 
 Setup and train models
