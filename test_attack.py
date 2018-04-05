@@ -167,8 +167,13 @@ def main(args):
 			attack = IGM(sess, model, batch_size=args['batch_size'], ord=2, inception=inception)
 			adv = attack.attack(inputs, targets)
 		
-		timeend = time.time()	
-		print("Took",timeend-timestart,"seconds to run",len(inputs)/args['batch_size'],"random instances.")
+		timeend = time.time()
+
+		if args['untargeted']:
+			num_targets = 1
+		else:
+			num_targets = range(data.test_labels.shape[1]) - 1	
+		print("Took",timeend-timestart,"seconds to run",len(inputs)/num_targets,"random instances.")
 
 		if(args['train']):
 			np.save('labels_train.npy',labels)
@@ -196,16 +201,15 @@ def main(args):
 			if not os.path.exists(str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])):
 				os.makedirs(str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack']))
 		
-		for i in range(0,len(inputs),args['batch_size']):
-
+		for i in range(0,len(inputs),num_targets):
 			pred = []
-			for j in range(i,i+args['batch_size']):
+			for j in range(i,i+num_targets):
 				if inception:
 					pred.append(np.reshape(model.model.predict(adv[j:j+1]), (data.test_labels[0:1].shape)))
 				else:
 					pred.append(model.model.predict(adv[j:j+1]))
 
-			for k,j in enumerate(range(i,i+args['batch_size'])):
+			for k,j in enumerate(range(i,i+num_targets)):
 				success = False
 				if(args['untargeted']):
 					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
@@ -231,7 +235,7 @@ def main(args):
 			else:
 				r_best.append(0)
 
-			rand_int = np.random.randint(i,i+args['batch_size'])
+			rand_int = np.random.randint(i,i+num_targets)
 			if inception:
 				pred_r = np.reshape(model.model.predict(adv[rand_int:rand_int+1]), (data.test_labels[0:1].shape))
 			else:
@@ -258,7 +262,7 @@ def main(args):
 			dist_linf_index = 1e10
 			dist_l2 = 0
 			dist_l2_index = 1e10
-			for k,j in enumerate(range(i,i+args['batch_size'])):
+			for k,j in enumerate(range(i,i+num_targets)):
 				failure = True
 				if(args['untargeted']):
 					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
@@ -289,7 +293,7 @@ def main(args):
 				r_worst.append(1)
 
 			if(args['show']):
-				for j in range(i,i+args['batch_size']):
+				for j in range(i,i+num_targets):
 					target_id = np.argmax(targets[j:j+1],1)
 					label_id = np.argmax(labels[j:j+1],1)
 					prev_id = np.argmax(np.reshape(model.model.predict(inputs[j:j+1]),(data.test_labels[0:1].shape)),1)
