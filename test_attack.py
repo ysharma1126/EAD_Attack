@@ -188,6 +188,7 @@ def main(args):
 		d_worst_l2 = []
 		d_worst_linf = []
 		
+		#Transferability Tests
 		if (args['conf'] != 0):
 			model = MNISTModel("models/mnist-distilled-100", sess)
 
@@ -204,14 +205,15 @@ def main(args):
 				else:
 					pred.append(model.model.predict(adv[j:j+1]))
 
-			dist_l1 = 1e10
-			dist_l2 = 1e10
-			dist_linf = 1e10
-			dist_l1_index = 1e10
-			dist_l2_index = 1e10
-			dist_linf_index = 1e10
 			for k,j in enumerate(range(i,i+args['batch_size'])):
-				if(np.argmax(pred[k],1) == np.argmax(targets[j:j+1],1)):
+				success = False
+				if(args['untargeted']):
+					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+						success = True
+				else:
+					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+						success = True
+				if(success):
 					if(np.sum(np.abs(adv[j]-inputs[j])) < dist_l1):
 						dist_l1 = np.sum(np.abs(adv[j]-inputs[j]))
 						dist_l1_index = j
@@ -234,7 +236,14 @@ def main(args):
 				pred_r = np.reshape(model.model.predict(adv[rand_int:rand_int+1]), (data.test_labels[0:1].shape))
 			else:
 				pred_r = model.model.predict(adv[rand_int:rand_int+1])
-			if(np.argmax(pred_r,1) == np.argmax(targets[rand_int:rand_int+1],1)):
+			success_average = False
+			if(args['untargeted']):			
+				if(np.argmax(pred_r,1) != np.argmax(targets[rand_int:rand_int+1],1)):
+					success_average = True
+			else:
+				if(np.argmax(pred_r,1) == np.argmax(targets[rand_int:rand_int+1],1)):
+					success_average = True
+			if success_average:				
 				r_average.append(1)
 				d_average_l2.append(np.sum((adv[rand_int]-inputs[rand_int])**2)**.5)
 				d_average_l1.append(np.sum(np.abs(adv[rand_int]-inputs[rand_int])))
@@ -250,7 +259,14 @@ def main(args):
 			dist_l2 = 0
 			dist_l2_index = 1e10
 			for k,j in enumerate(range(i,i+args['batch_size'])):
-				if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+				failure = True
+				if(args['untargeted']):
+					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+						failure = False
+				else:
+					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+						failure = False
+				if failure:
 					r_worst.append(0)
 					dist_l1_index = 1e10
 					dist_l2_index = 1e10
@@ -305,7 +321,7 @@ if __name__ == "__main__":
 	import argparse
 	parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("-d", "--dataset", choices=["mnist", "cifar", "imagenet"], default="mnist", help="dataset to use")
-	parser.add_argument("-u", "--untargeted", action='store_true', help= "run non-targeted instead of targeted attack)
+	parser.add_argument("-u", "--untargeted", action='store_true', help= "run non-targeted instead of targeted attack")
 	parser.add_argument("-tr", "--train", action='store_true', help="save adversarial images generated from train set")
 	parser.add_argument("-tp", "--temp", type=int, default=0, 
 		help="attack defensively distilled network trained with this temperature")
