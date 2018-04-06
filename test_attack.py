@@ -26,10 +26,6 @@ from ifgm import IFGM
 
 from PIL import Image
 
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib import pyplot as plt
-
 
 def show(img, name = "output.png"):
 
