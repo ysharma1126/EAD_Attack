@@ -87,7 +87,7 @@ class CIFAR:
         self.train_labels = train_labels[VALIDATION_SIZE:]
 
 class CIFARModel:
-    def __init__(self, restore, session=None):
+    def __init__(self, restore=None, session=None, use_logits=True):
         self.num_channels = 3
         self.image_size = 32
         self.num_labels = 10
@@ -113,8 +113,10 @@ class CIFARModel:
         model.add(Dense(256))
         model.add(Activation('relu'))
         model.add(Dense(10))
-
-        model.load_weights(restore)
+        if not use_logits:
+            model.add(Activation('softmax'))
+        if restore:
+            model.load_weights(restore)
 
         self.model = model
 

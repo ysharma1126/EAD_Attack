@@ -40,7 +40,7 @@ def show(img, name = "output.png"):
 	pic.save(name)
 	
 
-def generate_data(data, model, samples, targeted=True, target_num=9, start=0, inception=False, handpick=False, train=False, leastlikely=False,
+def generate_data(data, model, samples, targeted=True, target_num=9, start=0, inception=False, handpick=True, train=False, leastlikely=False,
 	sigma=0., seed=3):
 	random.seed(seed)
 	inputs = []
@@ -62,7 +62,7 @@ def generate_data(data, model, samples, targeted=True, target_num=9, start=0, in
 	
 	if handpick:
 		if inception:
-			deck = list(range(0,1500))
+			deck = list(range(0,1.5 * samples))
 		else:
 			deck = list(range(0,10000))
 		random.shuffle(deck)
@@ -79,18 +79,18 @@ def generate_data(data, model, samples, targeted=True, target_num=9, start=0, in
 				sample_set.append(rand_int)
 		print('Handpicked')
 	else:
-		sample_set = random.sample(range(0,10000),samples)
+		if inception:
+			sample_set = random.sample(range(0,1.5 * samples),samples)
+		else:
+			sample_set = random.sample(range(0,10000),samples)
 	
 	for i in sample_set:
 		if targeted:
 			if inception:
-				seq = random.sample(range(1,1001), target_num)
+				seq = random.sample(range(1,1001).remove(np.argmax(labels_d[start+i])), target_num)
 			else:
-				seq = range(labels_d.shape[1])
-
+				seq = random.sample(range(labels_d.shape[1]).remove(np.argmax(labels_d[start+i])), target_num)
 			for j in seq:
-				if (j == np.argmax(labels_d[start+i])) and (inception == False):
-					continue
 				inputs.append(data_d[start+i])
 				targets.append(np.eye(labels_d.shape[1])[j])
 				labels.append(labels_d[start+i])
@@ -100,7 +100,6 @@ def generate_data(data, model, samples, targeted=True, target_num=9, start=0, in
 			targets.append(labels_d[start+i])
 			labels.append(labels_d[start+i])
 			true_ids.append(start+i)
-	
 	inputs = np.array(inputs)
 	targets = np.array(targets)
 	labels = np.array(labels)
@@ -110,27 +109,29 @@ def generate_data(data, model, samples, targeted=True, target_num=9, start=0, in
 def main(args):
 	with tf.Session() as sess:
 		if (args['dataset'] == 'mnist'):
-			data, model =  MNIST(), MNISTModel("models/mnist", sess)
-			handpick=False
+			data =  MNIST()
 			inception=False
+			if (args['adversarial'] != "none"):
+				model = MNISTModel("models/mnist_cw"+str(args['adversarial']), sess)
+			elif (args['temp']):
+				model = MNISTModel("models/mnist-distilled-"+str(args['temp']), sess)
+			else:		
+				model = MNISTModel("models/mnist", sess)
 		if (args['dataset'] == "cifar"):
-			data, model = CIFAR(), CIFARModel("models/cifar", sess)
-			handpick=True
+			data = CIFAR()
 			inception=False
+			if (args['adversarial'] != "none"):
+				model = CIFARModel("models/cifar_cw"+str(args['adversarial']), sess)
+			elif (args['temp']):
+				model = CIFARModel("models/cifar-distilled-"+str(args['temp']), sess)
+			else:
+				model = CIFARModel("models/cifar", sess)
 		if (args['dataset'] == "imagenet"):
-			data, model = ImageNet(args['seed_imagenet']), InceptionModel(sess)
-			handpick=True
+			data, model = ImageNet(args['seed_imagenet'], 2*args['numimg']), InceptionModel(sess)
 			inception=True
 
-		if (args['adversarial'] != "none"):
-			model = MNISTModel("models/mnist_cw"+str(args['adversarial']), sess)
-
-		if (args['temp'] and args['dataset'] == 'mnist'):
-			model = MNISTModel("models/mnist-distilled-"+str(args['temp']), sess)
-		if (args['temp'] and args['dataset'] == 'cifar'):
-			model = CIFARModel("models/cifar-distilled-"+str(args['temp']), sess)
-
-		inputs, targets, labels, true_ids = generate_data(data, model, samples=args['numimg'], targeted = not args['untargeted'], inception=inception, handpick=handpick, train=args['train'], 
+		inputs, targets, labels, true_ids = generate_data(data, model, samples=args['numimg'], targeted = not args['untargeted'], target_num = args['targetnum'],
+			inception=inception, train=args['train'], 
 			seed=args['seed'])
 		timestart = time.time()
 		if (args['attack'] == 'L2'):
@@ -158,13 +159,13 @@ def main(args):
 			adv = attack.attack(inputs, targets)
 		
 		if (args['attack'] == 'IFGSM'):
-			attack = IGM(sess, model, batch_size=args['batch_size'], ord=np.inf, inception=inception)
+			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=np.inf, inception=inception)
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'IFGML1'):
-			attack = IGM(sess, model, batch_size=args['batch_size'], ord=1, inception=inception)
+			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=1, inception=inception)
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'IFGML2'):
-			attack = IGM(sess, model, batch_size=args['batch_size'], ord=2, inception=inception)
+			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=2, inception=inception)
 			adv = attack.attack(inputs, targets)
 		
 		timeend = time.time()
@@ -172,12 +173,12 @@ def main(args):
 		if args['untargeted']:
 			num_targets = 1
 		else:
-			num_targets = range(data.test_labels.shape[1]) - 1	
+			num_targets = args['targetnum']
 		print("Took",timeend-timestart,"seconds to run",len(inputs)/num_targets,"random instances.")
 
 		if(args['train']):
-			np.save('labels_train.npy',labels)
-			np.save(str(args['attack'])+'_train.npy',adv)
+			np.save(str(args['dataset'])+'_labels_train.npy',labels)
+			np.save(str(args['dataset'])+'_'+str(args['attack'])+'_train.npy',adv)
 			return
 		
 		r_best = []
@@ -194,8 +195,9 @@ def main(args):
 		d_worst_linf = []
 		
 		#Transferability Tests
-		if (args['conf'] != 0):
-			model = MNISTModel("models/mnist-distilled-100", sess)
+		if (args['targetmodel'] != "same"):
+			if(args['targetmodel'] == "dd_100"):
+				model = MNISTModel("models/mnist-distilled-100", sess)
 
 		if (args['show']):
 			if not os.path.exists(str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])):
@@ -326,6 +328,8 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("-d", "--dataset", choices=["mnist", "cifar", "imagenet"], default="mnist", help="dataset to use")
 	parser.add_argument("-u", "--untargeted", action='store_true', help= "run non-targeted instead of targeted attack")
+	parser.add_argument("-tg", "--targetnum", type=int, default=1, help= "number of targets per sample")
+	parser.add_argument("-tm", "--targetmodel", choices=["same","dd_100"], default="same", help="target model of attack")
 	parser.add_argument("-tr", "--train", action='store_true', help="save adversarial images generated from train set")
 	parser.add_argument("-tp", "--temp", type=int, default=0, 
 		help="attack defensively distilled network trained with this temperature")
@@ -336,9 +340,9 @@ if __name__ == "__main__":
 	parser.add_argument("-n", "--numimg", type=int, default=1000, help = "number of images to attack")
 	parser.add_argument("-m", "--maxiter", type=int, default=1000, help = "max iterations per bss")
 	parser.add_argument("-bs", "--binary_steps", type=int, default=9, help = "number of bss")
-	parser.add_argument("-b", "--batch_size", type=int, default=9, help= "batch size")
+	parser.add_argument("-b", "--batch_size", type=int, default=1, help= "batch size")
 	parser.add_argument("-ae", "--abort_early", action='store_true', help="abort binary search step early when losses stop decreasing")
-	parser.add_argument("-cf", "--conf", type=int, default=0, help='Set attack confidence for transferability tests')
+	parser.add_argument("-cf", "--conf", type=int, default=0, help='Set confidence score margin')
 	parser.add_argument("-be", "--beta", type=float, default=1e-3, help='beta hyperparameter')
 	parser.add_argument("-sh", "--show", action='store_true', help='save original and adversarial images to save directory')
 	parser.add_argument("-sd", "--seed", type=int, default=3, help='random seed for generate_data')

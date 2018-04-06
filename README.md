@@ -70,6 +70,7 @@ Run attacks
 
 A unified attack interface, `test_attack.py` is provided. Run `python3 test_attack.py -h`
 to get a list of arguments and help. Note the default values provided as well. 
+To generate best-case, average-case, and worst-case statistics, add "-tg 9" to command.
 
 The following are some examples of attacks:
 
@@ -85,12 +86,6 @@ Run the EN-oriented attack on the defensively distilled (T=100) CIFAR model with
 python3 test_attack.py -d cifar -tp 100
 ```
 
-Run the EN-oriented attack with 20 binary search steps, max 10,000 iterations each binary search step, and abort early (Greatly speeds up attack, hurts performance)
-
-```
-python3 test_attack.py -bs 20 -m 10000 -ae
-```
-
 Save original and adversarial images in the saves directory
 
 ```
@@ -100,7 +95,7 @@ python3 test_attack.py -sh
 Generate adversarial images on undefended MNIST model with confidence (50), attack defensively distilled (T=100) MNIST model
 
 ```
-python3 test_attack.py -cf 50
+python3 test_attack.py -cf 50 -tm dd_100
 ```
 
 Adversarial Training
@@ -109,7 +104,7 @@ Adversarial Training
 Adversarially train MNIST models by augmenting the training set with L2, EAD(L1), EAD(EN), L2+EAD(L1), and L2+EAD(EN)-based examples, respectively
 
 ```
-python3 train_models.py -a
+python3 train_models.py -d mnist -a
 ```
 
 This will use the provided numpy save files in the train directory. 

@@ -160,13 +160,13 @@ def run_inference_on_image(image):
       print('%s (score = %.5f)' % (human_string, score))
 
 class InceptionModelPrediction:
-  def __init__(self, sess, use_log = False):
+  def __init__(self, sess, use_logits = True):
     self.sess = sess
-    self.use_log = use_log
-    if self.use_log:
-      output_name = 'InceptionV3/Predictions/Softmax:0'
-    else:
+    self.use_logits = use_logits
+    if self.use_logits:
       output_name = 'InceptionV3/Predictions/Reshape:0'
+    else:
+      output_name = 'InceptionV3/Predictions/Softmax:0'
     self.img = tf.placeholder(tf.float32, (None, 299,299,3))
     self.softmax_tensor = tf.import_graph_def(
             sess.graph.as_graph_def(),
@@ -197,20 +197,20 @@ class InceptionModel:
   image_size = 299
   num_labels = 1001
   num_channels = 3
-  def __init__(self, sess, use_log = False):
+  def __init__(self, sess, use_logits = True):
     global CREATED_GRAPH
     self.sess = sess
-    self.use_log = use_log
+    self.use_logits = use_logits
     if not CREATED_GRAPH:
       create_graph()
       CREATED_GRAPH = True
-    self.model = InceptionModelPrediction(sess, use_log)
+    self.model = InceptionModelPrediction(sess, use_logits)
 
   def predict(self, img):
-    if self.use_log:
-      output_name = 'InceptionV3/Predictions/Softmax:0'
-    else:
+    if self.use_logits:
       output_name = 'InceptionV3/Predictions/Reshape:0'
+    else:
+      output_name = 'InceptionV3/Predictions/Softmax:0'
     # scaled = (0.5+tf.reshape(img,((299,299,3))))*255
     # scaled = (0.5+img)*255
     if img.shape.as_list()[0]:
@@ -283,12 +283,12 @@ def readimg(ff):
   return [img, int(ff.split(".")[0])]
 
 class ImageNet:
-  def __init__(self, seed):
+  def __init__(self, seed, num_samples = 2000):
     from multiprocessing import Pool
     pool = Pool(8)
     file_list = sorted(os.listdir("../imagenetdata/imgs/"))
     random.seed(seed)
-    r = pool.map(readimg, file_list[:2000])
+    r = pool.map(readimg, file_list[:num_samples])
     random.shuffle(file_list)
     #print(file_list[:200])
     r = [x for x in r if x != None]

@@ -60,14 +60,15 @@ class MNIST:
 
 
 class MNISTModel:
-    def __init__(self, restore, session=None):
+    def __init__(self, restore = None, session=None, use_logits=True):
         self.num_channels = 1
         self.image_size = 28
         self.num_labels = 10
 
         model = Sequential()
 
-        model.add(Conv2D(32, (3, 3), input_shape=(self.image_size, self.image_size, self.num_channels)))
+        model.add(Conv2D(32, (3, 3),
+                         input_shape=(28, 28, 1)))
         model.add(Activation('relu'))
         model.add(Conv2D(32, (3, 3)))
         model.add(Activation('relu'))
@@ -84,8 +85,12 @@ class MNISTModel:
         model.add(Activation('relu'))
         model.add(Dense(200))
         model.add(Activation('relu'))
-        model.add(Dense(self.num_labels))
-        model.load_weights(restore)
+        model.add(Dense(10))
+        # output log probability, used for black-box attack
+        if not use_logits:
+            model.add(Activation('softmax'))
+        if restore:
+            model.load_weights(restore)
 
         self.model = model
 
