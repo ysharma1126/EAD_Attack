@@ -133,7 +133,7 @@ def main(args):
             labels_2 = np.concatenate((labels,labels), axis=0)
             if(args['attack'] == "L2" or args['attack'] == "all"):
                 train(MNIST(), "models/mnist_cwl2", [32, 32, 64, 64, 200, 200], num_epochs=50, adversarial=True, examples=cwl2, labels=labels)
-            if(args['attack'] == "L1" or args['attack'] == "all")
+            if(args['attack'] == "L1" or args['attack'] == "all"):
                 train(MNIST(), "models/mnist_cwl1", [32, 32, 64, 64, 200, 200], num_epochs=50, adversarial=True, examples=cwl1, labels=labels)
             if(args['attack'] == "EN" or args['attack'] == "all"):
                 train(MNIST(), "models/mnist_cwe", [32, 32, 64, 64, 200, 200], num_epochs=50, adversarial=True, examples=cwen, labels=labels)
@@ -157,7 +157,7 @@ def main(args):
             labels_2 = np.concatenate((labels,labels), axis=0)
             if(args['attack'] == "L2" or args['attack'] == "all"):
                 train(CIFAR(), "models/cifar_cwl2", [64, 64, 128, 128, 256, 256], num_epochs=50, adversarial=True, examples=cwl2, labels=labels)
-            if(args['attack'] == "L1" or args['attack'] == "all")
+            if(args['attack'] == "L1" or args['attack'] == "all"):
                 train(CIFAR(), "models/cifar_cwl1", [64, 64, 128, 128, 256, 256], num_epochs=50, adversarial=True, examples=cwl1, labels=labels)
             if(args['attack'] == "EN" or args['attack'] == "all"):
                 train(CIFAR(), "models/cifar_cwe", [64, 64, 128, 128, 256, 256], num_epochs=50, adversarial=True, examples=cwen, labels=labels)
