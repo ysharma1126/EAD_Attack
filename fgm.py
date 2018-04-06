@@ -15,7 +15,7 @@ import numpy as np
 from six.moves import xrange
 
 class FGM:
-    def __init__(self, sess, model, batch_size=9, ord=np.inf, clip_min=-0.5, clip_max=0.5, targeted=True, inception=False):
+    def __init__(self, sess, model, batch_size=9, ord=np.inf, eps=0., clip_min=-0.5, clip_max=0.5, targeted=True, inception=False):
 
         image_size, num_channels, num_labels = model.image_size, model.num_channels, model.num_labels
         self.sess = sess
@@ -23,6 +23,7 @@ class FGM:
         self.targeted = targeted
         self.batch_size = batch_size
         self.ord = ord
+        self.epsilon = eps
         self.clip_min = clip_min
         self.clip_max = clip_max
         self.inception = inception
@@ -81,8 +82,7 @@ class FGM:
             #print('tick',i)
             batch = inputs[i:i+self.batch_size]
             batchlab = targets[i:i+self.batch_size]
-
-            self.sess.run(self.setup, {self.assign_timg: batch, self.assign_tlab: batchlab, self.assign_eps: 0.})
+            self.sess.run(self.setup, {self.assign_timg: batch, self.assign_tlab: batchlab, self.assign_eps: self.epsilon})
             adv,grad = self.sess.run([self.adv_x, self.signed_grad])
             adv_.extend(adv)
             grad_.extend(grad)
@@ -90,26 +90,27 @@ class FGM:
         print(adv_.shape)
         grad_ = np.array(grad_)
         print(grad_.shape)
-
-        if self.ord == np.inf:
-            step_size = 1e-3
-            eps = np.arange(1e-3,1e+0,step_size)
-        elif self.ord == 2:
-            step_size = 1e-2
-            eps = np.arange(1e-2,1e+1,step_size)
-        elif self.ord == 1:
-            step_size = 1e+0
-            eps = np.arange(1e+0,1e+3,step_size)
-        loop_iter = np.arange(0,len(inputs))
-        for i,c in enumerate(eps):
-            adv = np.clip(np.add(inputs,np.multiply(c,grad_)), self.clip_min, self.clip_max)
-            for j in loop_iter:
-                pred = self.model.model.predict(adv[j:j+1])
-                if self.inception:
-                    pred = np.reshape(pred, (targets[0:1].shape))
-                if(np.argmax(pred,1) == np.argmax(targets[j:j+1],1)):
-                    loop_iter = np.setdiff1d(loop_iter, j)
-                    print(len(loop_iter))
-                    adv_[j] = adv[j]
+        if(self.epsilon == 0.):
+            #Minimize Linf by finding lowest eps where example is adversarial
+            if self.ord == np.inf:
+                step_size = 1e-3
+                eps = np.arange(1e-3,1e+0,step_size)
+            elif self.ord == 2:
+                step_size = 1e-2
+                eps = np.arange(1e-2,1e+1,step_size)
+            elif self.ord == 1:
+                step_size = 1e+0
+                eps = np.arange(1e+0,1e+3,step_size)
+            loop_iter = np.arange(0,len(inputs))
+            for i,c in enumerate(eps):
+                adv = np.clip(np.add(inputs,np.multiply(c,grad_)), self.clip_min, self.clip_max)
+                for j in loop_iter:
+                    pred = self.model.model.predict(adv[j:j+1])
+                    if self.inception:
+                        pred = np.reshape(pred, (targets[0:1].shape))
+                    if(np.argmax(pred,1) == np.argmax(targets[j:j+1],1)):
+                        loop_iter = np.setdiff1d(loop_iter, j)
+                        print(len(loop_iter))
+                        adv_[j] = adv[j]
         adv = adv_
         return adv

@@ -149,23 +149,23 @@ def main(args):
 
 		"""If untargeted, pass labels instead of targets"""
 		if (args['attack'] == 'FGSM'):
-			attack = FGM(sess, model, batch_size=args['batch_size'], ord=np.inf, inception=inception)
+			attack = FGM(sess, model, batch_size=args['batch_size'], ord=np.inf, eps=args['eps'], inception=inception)
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'FGML1'):
-			attack = FGM(sess, model, batch_size=args['batch_size'], ord=1, inception=inception)
+			attack = FGM(sess, model, batch_size=args['batch_size'], ord=1, eps=args['eps'], inception=inception)
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'FGML2'):
-			attack = FGM(sess, model, batch_size=args['batch_size'], ord=2, inception=inception)
+			attack = FGM(sess, model, batch_size=args['batch_size'], ord=2, eps=args['eps'], inception=inception)
 			adv = attack.attack(inputs, targets)
 		
 		if (args['attack'] == 'IFGSM'):
-			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=np.inf, inception=inception)
+			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=np.inf, eps=args['eps'], inception=inception)
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'IFGML1'):
-			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=1, inception=inception)
+			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=1, eps=args['eps'], inception=inception)
 			adv = attack.attack(inputs, targets)
 		if (args['attack'] == 'IFGML2'):
-			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=2, inception=inception)
+			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=2, eps=args['eps'], inception=inception)
 			adv = attack.attack(inputs, targets)
 		
 		timeend = time.time()
@@ -344,6 +344,7 @@ if __name__ == "__main__":
 	parser.add_argument("-ae", "--abort_early", action='store_true', help="abort binary search step early when losses stop decreasing")
 	parser.add_argument("-cf", "--conf", type=int, default=0, help='Set confidence score margin')
 	parser.add_argument("-be", "--beta", type=float, default=1e-3, help='beta hyperparameter')
+	parser.add_argument("-ep", "--eps", type=float, default=0., help='eps hyperparameter (if 0, find lowest eps where example is successful')	
 	parser.add_argument("-sh", "--show", action='store_true', help='save original and adversarial images to save directory')
 	parser.add_argument("-sd", "--seed", type=int, default=3, help='random seed for generate_data')
 	parser.add_argument("-imgsd", "--seed_imagenet", type=int, default=4, help='random seed for pulling images from ImageNet test set')

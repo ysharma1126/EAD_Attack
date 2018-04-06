@@ -15,7 +15,7 @@ import numpy as np
 from six.moves import xrange
 
 class IFGM:
-	def __init__(self, sess, model, nb_iter=10, batch_size=9, ord=np.inf, clip_min=-0.5, clip_max=0.5, targeted=True, inception=False):
+	def __init__(self, sess, model, nb_iter=10, batch_size=9, ord=np.inf, eps=0., clip_min=-0.5, clip_max=0.5, targeted=True, inception=False):
 
 		image_size, num_channels, num_labels = model.image_size, model.num_channels, model.num_labels
 		self.sess = sess
@@ -24,6 +24,7 @@ class IFGM:
 		self.targeted = targeted
 		self.batch_size = batch_size
 		self.ord = ord
+		self.epsilon = eps
 		self.clip_min = clip_min
 		self.clip_max = clip_max
 		self.inception = inception
@@ -77,16 +78,18 @@ class IFGM:
 	def attack(self, inputs, targets):
 		adv_ = []
 		adv_ = np.array(inputs)
-
-		if self.ord == np.inf:
-			step_size = 1e-3
-			eps = np.arange(1e-3,1e+0,step_size)
-		elif self.ord == 2:
-			step_size = 1e-2
-			eps = np.arange(1e-2,1e+1,step_size)
-		elif self.ord == 1:
-			step_size = 1e+0
-			eps = np.arange(1e+0,1e+3,step_size)
+		if(self.epsilon == 0.):
+			if self.ord == np.inf:
+				step_size = 1e-3
+				eps = np.arange(1e-3,1e+0,step_size)
+			elif self.ord == 2:
+				step_size = 1e-2
+				eps = np.arange(1e-2,1e+1,step_size)
+			elif self.ord == 1:
+				step_size = 1e+0
+				eps = np.arange(1e+0,1e+3,step_size)
+		else:
+			eps = [self.epsilon]
 		loop_iter = np.arange(0,len(inputs))
 		for i,c in enumerate(eps):
 			if(len(loop_iter) != 0):
@@ -114,13 +117,16 @@ class IFGM:
 					adv.extend(np.clip(np.add(batch,eta), self.clip_min, self.clip_max))
 				adv = np.array(adv)
 				#print(inputs - adv)
-				for j in loop_iter:
-					pred = self.model.model.predict(adv[j:j+1])
-					if self.inception:
-						pred = np.reshape(pred, (targets[0:1].shape))
-					if(np.argmax(pred,1) == np.argmax(targets[j:j+1],1)):
-						loop_iter = np.setdiff1d(loop_iter, j)
-						print(len(loop_iter))
-						adv_[j] = adv[j]
+				if(self.epsilon == 0.):
+					for j in loop_iter:
+						pred = self.model.model.predict(adv[j:j+1])
+						if self.inception:
+							pred = np.reshape(pred, (targets[0:1].shape))
+						if(np.argmax(pred,1) == np.argmax(targets[j:j+1],1)):
+							loop_iter = np.setdiff1d(loop_iter, j)
+							print(len(loop_iter))
+							adv_[j] = adv[j]
+				else:
+					adv_ = adv
 		adv = adv_
 		return adv
