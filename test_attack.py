@@ -217,11 +217,11 @@ def main(args):
 				else:
 					pred.append(model.model.predict(adv[j:j+1]))
 
-			dist_l1 = 0
+			dist_l1 = 1e10
 			dist_l1_index = 1e10
-			dist_linf = 0
+			dist_linf = 1e10
 			dist_linf_index = 1e10
-			dist_l2 = 0
+			dist_l2 = 1e10
 			dist_l2_index = 1e10
 			for k,j in enumerate(range(i,i+num_targets)):
 				success = False
