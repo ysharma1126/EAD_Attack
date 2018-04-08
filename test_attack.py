@@ -217,13 +217,19 @@ def main(args):
 				else:
 					pred.append(model.model.predict(adv[j:j+1]))
 
+			dist_l1 = 0
+			dist_l1_index = 1e10
+			dist_linf = 0
+			dist_linf_index = 1e10
+			dist_l2 = 0
+			dist_l2_index = 1e10
 			for k,j in enumerate(range(i,i+num_targets)):
 				success = False
 				if(args['untargeted']):
 					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
 						success = True
 				else:
-					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+					if(np.argmax(pred[k],1) == np.argmax(targets[j:j+1],1)):
 						success = True
 				if(success):
 					if(np.sum(np.abs(adv[j]-inputs[j])) < dist_l1):
@@ -276,7 +282,7 @@ def main(args):
 					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
 						failure = False
 				else:
-					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+					if(np.argmax(pred[k],1) == np.argmax(targets[j:j+1],1)):
 						failure = False
 				if failure:
 					r_worst.append(0)
