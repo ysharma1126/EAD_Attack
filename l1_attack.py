@@ -1,4 +1,4 @@
-## en_attack.py -- attack a network optimizing elastic-net distance with an l1 decision rule
+## l1_attack.py -- attack a network optimizing elastic-net distance with an l1 decision rule
 ##
 ## Copyright (C) 2017, Yash Sharma <ysharma1126@gmail.com>.
 ## Copyright (C) 2016, Nicholas Carlini <nicholas@carlini.com>.
