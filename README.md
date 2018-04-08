@@ -109,10 +109,10 @@ python3 train_models.py -d mnist -a
 ```
 
 This will use the provided numpy save files in the train directory. 
-Generate your own training set examples for use in adversarial training (ex - L1-oriented attack)
+Generate and save your own training set examples for use in adversarial training (ex - L1-oriented attack)
 
 ```
-python3 test_attack.py -a L1 -tr
+python3 test_attack.py -a L1 -sn -tr
 ```
 
 Now, attack an adversarially trained model (ex - L1-trained network)

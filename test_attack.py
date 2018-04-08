@@ -76,16 +76,18 @@ def generate_data(data, model, samples, targeted=True, target_num=9, start=0, in
 		print('Handpicked')
 	else:
 		if inception:
-			sample_set = random.sample(range(0,1.5 * samples),samples)
+			sample_set = random.sample(range(0,int(1.5 * samples)),samples)
 		else:
 			sample_set = random.sample(range(0,10000),samples)
 	
 	for i in sample_set:
 		if targeted:
 			if inception:
-				seq = random.sample(range(1,1001).remove(np.argmax(labels_d[start+i])), target_num)
+				r = list(range(1,1001))
 			else:
-				seq = random.sample(range(labels_d.shape[1]).remove(np.argmax(labels_d[start+i])), target_num)
+				r = list(range(labels_d.shape[1]))
+			r.remove(np.argmax(labels_d[start+i]))
+			seq = random.sample(r, target_num)
 			for j in seq:
 				inputs.append(data_d[start+i])
 				targets.append(np.eye(labels_d.shape[1])[j])
@@ -130,39 +132,45 @@ def main(args):
 			inception=inception, train=args['train'], 
 			seed=args['seed'])
 		timestart = time.time()
-		if (args['attack'] == 'L2'):
-			attack = CarliniL2(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
-				binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
-			adv = attack.attack(inputs, targets)
-		if (args['attack'] == 'L1'):
-			attack = EADL1(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
-				binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
-			adv = attack.attack(inputs, targets)
-		if (args['attack'] == 'EN'):
-			attack = EADEN(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
-				binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
-			adv = attack.attack(inputs, targets)
+		if(args['restore_np']):
+			if(args['train']):
+				adv = np.load(str(args['dataset'])+'_'+str(args['attack'])+'_train.npy')
+			else:
+				adv = np.load(str(args['dataset'])+'_'+str(args['attack'])+'.npy')
+		else:
+			if (args['attack'] == 'L2'):
+				attack = CarliniL2(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
+					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
+				adv = attack.attack(inputs, targets)
+			if (args['attack'] == 'L1'):
+				attack = EADL1(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
+					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
+				adv = attack.attack(inputs, targets)
+			if (args['attack'] == 'EN'):
+				attack = EADEN(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], 
+					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
+				adv = attack.attack(inputs, targets)
 
-		"""If untargeted, pass labels instead of targets"""
-		if (args['attack'] == 'FGSM'):
-			attack = FGM(sess, model, batch_size=args['batch_size'], ord=np.inf, eps=args['eps'], inception=inception)
-			adv = attack.attack(inputs, targets)
-		if (args['attack'] == 'FGML1'):
-			attack = FGM(sess, model, batch_size=args['batch_size'], ord=1, eps=args['eps'], inception=inception)
-			adv = attack.attack(inputs, targets)
-		if (args['attack'] == 'FGML2'):
-			attack = FGM(sess, model, batch_size=args['batch_size'], ord=2, eps=args['eps'], inception=inception)
-			adv = attack.attack(inputs, targets)
-		
-		if (args['attack'] == 'IFGSM'):
-			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=np.inf, eps=args['eps'], inception=inception)
-			adv = attack.attack(inputs, targets)
-		if (args['attack'] == 'IFGML1'):
-			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=1, eps=args['eps'], inception=inception)
-			adv = attack.attack(inputs, targets)
-		if (args['attack'] == 'IFGML2'):
-			attack = IFGM(sess, model, batch_size=args['batch_size'], ord=2, eps=args['eps'], inception=inception)
-			adv = attack.attack(inputs, targets)
+			"""If untargeted, pass labels instead of targets"""
+			if (args['attack'] == 'FGSM'):
+				attack = FGM(sess, model, batch_size=args['batch_size'], ord=np.inf, eps=args['eps'], inception=inception)
+				adv = attack.attack(inputs, targets)
+			if (args['attack'] == 'FGML1'):
+				attack = FGM(sess, model, batch_size=args['batch_size'], ord=1, eps=args['eps'], inception=inception)
+				adv = attack.attack(inputs, targets)
+			if (args['attack'] == 'FGML2'):
+				attack = FGM(sess, model, batch_size=args['batch_size'], ord=2, eps=args['eps'], inception=inception)
+				adv = attack.attack(inputs, targets)
+			
+			if (args['attack'] == 'IFGSM'):
+				attack = IFGM(sess, model, batch_size=args['batch_size'], ord=np.inf, eps=args['eps'], inception=inception)
+				adv = attack.attack(inputs, targets)
+			if (args['attack'] == 'IFGML1'):
+				attack = IFGM(sess, model, batch_size=args['batch_size'], ord=1, eps=args['eps'], inception=inception)
+				adv = attack.attack(inputs, targets)
+			if (args['attack'] == 'IFGML2'):
+				attack = IFGM(sess, model, batch_size=args['batch_size'], ord=2, eps=args['eps'], inception=inception)
+				adv = attack.attack(inputs, targets)
 		
 		timeend = time.time()
 
@@ -172,10 +180,12 @@ def main(args):
 			num_targets = args['targetnum']
 		print("Took",timeend-timestart,"seconds to run",len(inputs)/num_targets,"random instances.")
 
-		if(args['train']):
-			np.save(str(args['dataset'])+'_labels_train.npy',labels)
-			np.save(str(args['dataset'])+'_'+str(args['attack'])+'_train.npy',adv)
-			return
+		if(args['save_np']):
+			if(args['train']):
+				np.save(str(args['dataset'])+'_labels_train.npy',labels)
+				np.save(str(args['dataset'])+'_'+str(args['attack'])+'_train.npy',adv)
+			else:
+				np.save(str(args['dataset'])+'_'+str(args['attack']+'.npy'),adv)
 		
 		r_best = []
 		d_best_l1 = []
@@ -342,6 +352,8 @@ if __name__ == "__main__":
 	parser.add_argument("-be", "--beta", type=float, default=1e-3, help='beta hyperparameter')
 	parser.add_argument("-ep", "--eps", type=float, default=0., help='eps hyperparameter (if 0, find lowest eps where example is successful')	
 	parser.add_argument("-sh", "--show", action='store_true', help='save original and adversarial images to save directory')
+	parser.add_argument("-sn", "--save_np", action='store_true', help='save adversarial examples for evaluation')
+	parser.add_argument("-r", "--restore_np", action='store_true', help='restore saved adversarial examples for evaluation')
 	parser.add_argument("-sd", "--seed", type=int, default=3, help='random seed for generate_data')
 	parser.add_argument("-imgsd", "--seed_imagenet", type=int, default=4, help='random seed for pulling images from ImageNet test set')
 	args = vars(parser.parse_args())
