@@ -322,18 +322,24 @@ def main(args):
 					show(inputs[j:j+1], str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])+"/original_{}.png".format(suffix))
 					show(adv[j:j+1], str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])+"/adversarial_{}.png".format(suffix))
 
-		print('best_case_L1_mean', np.mean(d_best_l1))
-		print('best_case_L2_mean', np.mean(d_best_l2))
-		print('best_case_Linf_mean', np.mean(d_best_linf))
-		print('best_case_prob', np.mean(r_best))
-		print('average_case_L1_mean', np.mean(d_average_l1))
-		print('average_case_L2_mean', np.mean(d_average_l2))
-		print('average_case_Linf_mean', np.mean(d_average_linf))
-		print('average_case_prob', np.mean(r_average))
-		print('worst_case_L1_mean', np.mean(d_worst_l1))
-		print('worst_case_L2_mean', np.mean(d_worst_l2))
-		print('worst_case_Linf_mean', np.mean(d_worst_linf))
-		print('worst_case_prob', np.mean(r_worst))
+		if(num_targets > 1):
+			print('best_case_L1_mean', np.mean(d_best_l1))
+			print('best_case_L2_mean', np.mean(d_best_l2))
+			print('best_case_Linf_mean', np.mean(d_best_linf))
+			print('best_case_prob', np.mean(r_best))
+			print('average_case_L1_mean', np.mean(d_average_l1))
+			print('average_case_L2_mean', np.mean(d_average_l2))
+			print('average_case_Linf_mean', np.mean(d_average_linf))
+			print('average_case_prob', np.mean(r_average))
+			print('worst_case_L1_mean', np.mean(d_worst_l1))
+			print('worst_case_L2_mean', np.mean(d_worst_l2))
+			print('worst_case_Linf_mean', np.mean(d_worst_linf))
+			print('worst_case_prob', np.mean(r_worst))
+		else:
+			print('L1_mean', np.mean(d_average_l1))
+			print('L2_mean', np.mean(d_average_l2))
+			print('Linf_mean', np.mean(d_average_linf))
+			print('success_prob', np.mean(r_average))		
 
 if __name__ == "__main__":
 	import argparse
