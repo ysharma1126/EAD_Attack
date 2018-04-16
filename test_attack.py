@@ -58,7 +58,7 @@ def generate_data(data, model, samples, targeted=True, target_num=9, start=0, in
 	
 	if handpick:
 		if inception:
-			deck = list(range(0,1.5 * samples))
+			deck = list(range(0,int(1.5 * samples)))
 		else:
 			deck = list(range(0,10000))
 		random.shuffle(deck)
@@ -187,159 +187,179 @@ def main(args):
 			else:
 				np.save(str(args['dataset'])+'_'+str(args['attack']+'.npy'),adv)
 		
-		r_best = []
-		d_best_l1 = []
-		d_best_l2 = []
-		d_best_linf = []
-		r_average = []
-		d_average_l1 = []
-		d_average_l2 = []
-		d_average_linf = []
-		r_worst = []
-		d_worst_l1 = []
-		d_worst_l2 = []
-		d_worst_linf = []
+		r_best_ = []
+		d_best_l1_ = []
+		d_best_l2_ = []
+		d_best_linf_ = []
+		r_average_ = []
+		d_average_l1_ = []
+		d_average_l2_ = []
+		d_average_linf_ = []
+		r_worst_ = []
+		d_worst_l1_ = []
+		d_worst_l2_ = []
+		d_worst_linf_ = []
 		
 		#Transferability Tests
+		model_ = []
+		model_.append(model)
 		if (args['targetmodel'] != "same"):
 			if(args['targetmodel'] == "dd_100"):
-				model = MNISTModel("models/mnist-distilled-100", sess)
+				model_.append(MNISTModel("models/mnist-distilled-100", sess))
+		num_models = len(model_)
 
 		if (args['show']):
 			if not os.path.exists(str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])):
 				os.makedirs(str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack']))
-		
-		for i in range(0,len(inputs),num_targets):
-			pred = []
-			for j in range(i,i+num_targets):
-				if inception:
-					pred.append(np.reshape(model.model.predict(adv[j:j+1]), (data.test_labels[0:1].shape)))
-				else:
-					pred.append(model.model.predict(adv[j:j+1]))
-
-			dist_l1 = 1e10
-			dist_l1_index = 1e10
-			dist_linf = 1e10
-			dist_linf_index = 1e10
-			dist_l2 = 1e10
-			dist_l2_index = 1e10
-			for k,j in enumerate(range(i,i+num_targets)):
-				success = False
-				if(args['untargeted']):
-					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
-						success = True
-				else:
-					if(np.argmax(pred[k],1) == np.argmax(targets[j:j+1],1)):
-						success = True
-				if(success):
-					if(np.sum(np.abs(adv[j]-inputs[j])) < dist_l1):
-						dist_l1 = np.sum(np.abs(adv[j]-inputs[j]))
-						dist_l1_index = j
-					if(np.amax(np.abs(adv[j]-inputs[j])) < dist_linf):
-						dist_linf = np.amax(np.abs(adv[j]-inputs[j]))
-						dist_linf_index = j
-					if((np.sum((adv[j]-inputs[j])**2)**.5) < dist_l2):
-						dist_l2 = (np.sum((adv[j]-inputs[j])**2)**.5)
-						dist_l2_index = j
-			if(dist_l1_index != 1e10):
-				d_best_l2.append((np.sum((adv[dist_l2_index]-inputs[dist_l2_index])**2)**.5))
-				d_best_l1.append(np.sum(np.abs(adv[dist_l1_index]-inputs[dist_l1_index])))
-				d_best_linf.append(np.amax(np.abs(adv[dist_linf_index]-inputs[dist_linf_index])))
-				r_best.append(1)
-			else:
-				r_best.append(0)
-
-			rand_int = np.random.randint(i,i+num_targets)
-			if inception:
-				pred_r = np.reshape(model.model.predict(adv[rand_int:rand_int+1]), (data.test_labels[0:1].shape))
-			else:
-				pred_r = model.model.predict(adv[rand_int:rand_int+1])
-			success_average = False
-			if(args['untargeted']):			
-				if(np.argmax(pred_r,1) != np.argmax(targets[rand_int:rand_int+1],1)):
-					success_average = True
-			else:
-				if(np.argmax(pred_r,1) == np.argmax(targets[rand_int:rand_int+1],1)):
-					success_average = True
-			if success_average:				
-				r_average.append(1)
-				d_average_l2.append(np.sum((adv[rand_int]-inputs[rand_int])**2)**.5)
-				d_average_l1.append(np.sum(np.abs(adv[rand_int]-inputs[rand_int])))
-				d_average_linf.append(np.amax(np.abs(adv[rand_int]-inputs[rand_int])))
-
-			else:
-				r_average.append(0)
-
-			dist_l1 = 0
-			dist_l1_index = 1e10
-			dist_linf = 0
-			dist_linf_index = 1e10
-			dist_l2 = 0
-			dist_l2_index = 1e10
-			for k,j in enumerate(range(i,i+num_targets)):
-				failure = True
-				if(args['untargeted']):
-					if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
-						failure = False
-				else:
-					if(np.argmax(pred[k],1) == np.argmax(targets[j:j+1],1)):
-						failure = False
-				if failure:
-					r_worst.append(0)
-					dist_l1_index = 1e10
-					dist_l2_index = 1e10
-					dist_linf_index = 1e10
-					break
-				else:
-					if(np.sum(np.abs(adv[j]-inputs[j])) > dist_l1):
-						dist_l1 = np.sum(np.abs(adv[j]-inputs[j]))
-						dist_l1_index = j
-					if(np.amax(np.abs(adv[j]-inputs[j])) > dist_linf):
-						dist_linf = np.amax(np.abs(adv[j]-inputs[j]))
-						dist_linf_index = j
-					if((np.sum((adv[j]-inputs[j])**2)**.5) > dist_l2):
-						dist_l2 = (np.sum((adv[j]-inputs[j])**2)**.5)
-						dist_l2_index = j
-			if(dist_l1_index != 1e10):
-				d_worst_l2.append((np.sum((adv[dist_l2_index]-inputs[dist_l2_index])**2)**.5))
-				d_worst_l1.append(np.sum(np.abs(adv[dist_l1_index]-inputs[dist_l1_index])))
-				d_worst_linf.append(np.amax(np.abs(adv[dist_linf_index]-inputs[dist_linf_index])))
-				r_worst.append(1)
-
-			if(args['show']):
+		for m,model in enumerate(model_):
+			r_best = []
+			d_best_l1 = []
+			d_best_l2 = []
+			d_best_linf = []
+			r_average = []
+			d_average_l1 = []
+			d_average_l2 = []
+			d_average_linf = []
+			r_worst = []
+			d_worst_l1 = []
+			d_worst_l2 = []
+			d_worst_linf = []
+			for i in range(0,len(inputs),num_targets):
+				pred = []
 				for j in range(i,i+num_targets):
-					target_id = np.argmax(targets[j:j+1],1)
-					label_id = np.argmax(labels[j:j+1],1)
-					prev_id = np.argmax(np.reshape(model.model.predict(inputs[j:j+1]),(data.test_labels[0:1].shape)),1)
-					adv_id = np.argmax(np.reshape(model.model.predict(adv[j:j+1]),(data.test_labels[0:1].shape)),1)
-					suffix = "id{}_seq{}_lbl{}_prev{}_adv{}_{}_l1_{:.3f}_l2_{:.3f}_linf_{:.3f}".format(true_ids[i],
-						target_id,
-						label_id,
-						prev_id,
-						adv_id, adv_id == target_id,
-						np.sum(np.abs(adv[j]-inputs[j])), np.sum((adv[j]-inputs[j])**2)**.5, np.amax(np.abs(adv[j]-inputs[j])))
+					if inception:
+						pred.append(np.reshape(model.model.predict(adv[j:j+1]), (data.test_labels[0:1].shape)))
+					else:
+						pred.append(model.model.predict(adv[j:j+1]))
 
-					show(inputs[j:j+1], str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])+"/original_{}.png".format(suffix))
-					show(adv[j:j+1], str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])+"/adversarial_{}.png".format(suffix))
+				dist_l1 = 1e10
+				dist_l1_index = 1e10
+				dist_linf = 1e10
+				dist_linf_index = 1e10
+				dist_l2 = 1e10
+				dist_l2_index = 1e10
+				for k,j in enumerate(range(i,i+num_targets)):
+					success = False
+					if(args['untargeted']):
+						if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+							success = True
+					else:
+						if(np.argmax(pred[k],1) == np.argmax(targets[j:j+1],1)):
+							success = True
+					if(success):
+						if(np.sum(np.abs(adv[j]-inputs[j])) < dist_l1):
+							dist_l1 = np.sum(np.abs(adv[j]-inputs[j]))
+							dist_l1_index = j
+						if(np.amax(np.abs(adv[j]-inputs[j])) < dist_linf):
+							dist_linf = np.amax(np.abs(adv[j]-inputs[j]))
+							dist_linf_index = j
+						if((np.sum((adv[j]-inputs[j])**2)**.5) < dist_l2):
+							dist_l2 = (np.sum((adv[j]-inputs[j])**2)**.5)
+							dist_l2_index = j
+				if(dist_l1_index != 1e10):
+					d_best_l2.append((np.sum((adv[dist_l2_index]-inputs[dist_l2_index])**2)**.5))
+					d_best_l1.append(np.sum(np.abs(adv[dist_l1_index]-inputs[dist_l1_index])))
+					d_best_linf.append(np.amax(np.abs(adv[dist_linf_index]-inputs[dist_linf_index])))
+					r_best.append(1)
+				else:
+					r_best.append(0)
 
-		if(num_targets > 1):
-			print('best_case_L1_mean', np.mean(d_best_l1))
-			print('best_case_L2_mean', np.mean(d_best_l2))
-			print('best_case_Linf_mean', np.mean(d_best_linf))
-			print('best_case_prob', np.mean(r_best))
-			print('average_case_L1_mean', np.mean(d_average_l1))
-			print('average_case_L2_mean', np.mean(d_average_l2))
-			print('average_case_Linf_mean', np.mean(d_average_linf))
-			print('average_case_prob', np.mean(r_average))
-			print('worst_case_L1_mean', np.mean(d_worst_l1))
-			print('worst_case_L2_mean', np.mean(d_worst_l2))
-			print('worst_case_Linf_mean', np.mean(d_worst_linf))
-			print('worst_case_prob', np.mean(r_worst))
-		else:
-			print('L1_mean', np.mean(d_average_l1))
-			print('L2_mean', np.mean(d_average_l2))
-			print('Linf_mean', np.mean(d_average_linf))
-			print('success_prob', np.mean(r_average))		
+				rand_int = np.random.randint(i,i+num_targets)
+				if inception:
+					pred_r = np.reshape(model.model.predict(adv[rand_int:rand_int+1]), (data.test_labels[0:1].shape))
+				else:
+					pred_r = model.model.predict(adv[rand_int:rand_int+1])
+				success_average = False
+				if(args['untargeted']):			
+					if(np.argmax(pred_r,1) != np.argmax(targets[rand_int:rand_int+1],1)):
+						success_average = True
+				else:
+					if(np.argmax(pred_r,1) == np.argmax(targets[rand_int:rand_int+1],1)):
+						success_average = True
+				if success_average:				
+					r_average.append(1)
+					d_average_l2.append(np.sum((adv[rand_int]-inputs[rand_int])**2)**.5)
+					d_average_l1.append(np.sum(np.abs(adv[rand_int]-inputs[rand_int])))
+					d_average_linf.append(np.amax(np.abs(adv[rand_int]-inputs[rand_int])))
+
+				else:
+					r_average.append(0)
+
+				dist_l1 = 0
+				dist_l1_index = 1e10
+				dist_linf = 0
+				dist_linf_index = 1e10
+				dist_l2 = 0
+				dist_l2_index = 1e10
+				for k,j in enumerate(range(i,i+num_targets)):
+					failure = True
+					if(args['untargeted']):
+						if(np.argmax(pred[k],1) != np.argmax(targets[j:j+1],1)):
+							failure = False
+					else:
+						if(np.argmax(pred[k],1) == np.argmax(targets[j:j+1],1)):
+							failure = False
+					if failure:
+						r_worst.append(0)
+						dist_l1_index = 1e10
+						dist_l2_index = 1e10
+						dist_linf_index = 1e10
+						break
+					else:
+						if(np.sum(np.abs(adv[j]-inputs[j])) > dist_l1):
+							dist_l1 = np.sum(np.abs(adv[j]-inputs[j]))
+							dist_l1_index = j
+						if(np.amax(np.abs(adv[j]-inputs[j])) > dist_linf):
+							dist_linf = np.amax(np.abs(adv[j]-inputs[j]))
+							dist_linf_index = j
+						if((np.sum((adv[j]-inputs[j])**2)**.5) > dist_l2):
+							dist_l2 = (np.sum((adv[j]-inputs[j])**2)**.5)
+							dist_l2_index = j
+				if(dist_l1_index != 1e10):
+					d_worst_l2.append((np.sum((adv[dist_l2_index]-inputs[dist_l2_index])**2)**.5))
+					d_worst_l1.append(np.sum(np.abs(adv[dist_l1_index]-inputs[dist_l1_index])))
+					d_worst_linf.append(np.amax(np.abs(adv[dist_linf_index]-inputs[dist_linf_index])))
+					r_worst.append(1)
+
+				if(args['show'] and m == (num_models-1)):
+					for j in range(i,i+num_targets):
+						target_id = np.argmax(targets[j:j+1],1)
+						label_id = np.argmax(labels[j:j+1],1)
+						prev_id = np.argmax(np.reshape(model.model.predict(inputs[j:j+1]),(data.test_labels[0:1].shape)),1)
+						adv_id = np.argmax(np.reshape(model.model.predict(adv[j:j+1]),(data.test_labels[0:1].shape)),1)
+						suffix = "id{}_seq{}_lbl{}_prev{}_adv{}_{}_l1_{:.3f}_l2_{:.3f}_linf_{:.3f}".format(true_ids[i],
+							target_id,
+							label_id,
+							prev_id,
+							adv_id, adv_id == target_id,
+							np.sum(np.abs(adv[j]-inputs[j])), np.sum((adv[j]-inputs[j])**2)**.5, np.amax(np.abs(adv[j]-inputs[j])))
+
+						show(inputs[j:j+1], str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])+"/original_{}.png".format(suffix))
+						show(adv[j:j+1], str(args['save'])+"/"+str(args['dataset'])+"/"+str(args['attack'])+"/adversarial_{}.png".format(suffix))
+			if(m != (num_models - 1)):
+				lbl = "Src_"
+				if(num_models > 2):
+					lbl += str(m) + "_"
+			else:
+				lbl = "Tgt_"
+			if(num_targets > 1):
+				print(lbl+'best_case_L1_mean', np.mean(d_best_l1))
+				print(lbl+'best_case_L2_mean', np.mean(d_best_l2))
+				print(lbl+'best_case_Linf_mean', np.mean(d_best_linf))
+				print(lbl+'best_case_prob', np.mean(r_best))
+				print(lbl+'average_case_L1_mean', np.mean(d_average_l1))
+				print(lbl+'average_case_L2_mean', np.mean(d_average_l2))
+				print(lbl+'average_case_Linf_mean', np.mean(d_average_linf))
+				print(lbl+'average_case_prob', np.mean(r_average))
+				print(lbl+'worst_case_L1_mean', np.mean(d_worst_l1))
+				print(lbl+'worst_case_L2_mean', np.mean(d_worst_l2))
+				print(lbl+'worst_case_Linf_mean', np.mean(d_worst_linf))
+				print(lbl+'worst_case_prob', np.mean(r_worst))
+			else:
+				print(lbl+'L1_mean', np.mean(d_average_l1))
+				print(lbl+'L2_mean', np.mean(d_average_l2))
+				print(lbl+'Linf_mean', np.mean(d_average_linf))
+				print(lbl+'success_prob', np.mean(r_average))		
 
 if __name__ == "__main__":
 	import argparse
