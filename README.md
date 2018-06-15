@@ -4,7 +4,7 @@ EAD: Elastic-Net Attacks to Deep Neural Networks
 EAD is a **e**lastic-net **a**ttack to **d**eep neural networks (DNNs).  
 We propose formulating the attack process as a elastic-net regularized optimization problem, featuring an attack which produces L1-oriented adversarial examples which includes the state-of-the-art L2 attack (C&W) as a special case. 
 
-Experimental results on MNIST, CIFAR10, and ImageNet show that EAD can yield a distinct set of adversarial examples and attains similar attack performance to state-of-the-art methods in different attack scenarios. More importantly, EAD leads to improved attack transferability and complements adversarial training for DNNs, suggesting novel insights on leveraging L1 distortion in generating robust adversarial examples. 
+Experimental results on MNIST, CIFAR-10, and ImageNet show that EAD yields a distinct set of adversarial examples and attains similar attack performance to state-of-the-art methods in different attack scenarios. More importantly, EAD leads to improved attack transferability and complements adversarial training for DNNs, suggesting novel insights on leveraging L1 distortion in generating robust adversarial examples. 
 
 For more details, please see our paper:
 
@@ -13,8 +13,16 @@ by Yash Sharma\*, Pin-Yu Chen\*, Huan Zhang, Jinfeng Yi, Cho-Jui Hsieh (AAAI 201
 
 \* Equal contribution
 
+The attack has also been used in the following works (incomplete):
+
+[Attacking the Madry Defense Model with L1-based Adversarial Examples](https://arxiv.org/abs/1710.10733)
+by Yash Sharma\*, Pin-Yu Chen\* (ICLR 2018 Workshop)
+[Bypassing Feature Squeezing by Increasing Adversary Strength](https://arxiv.org/abs/1803.09868)
+by Yash Sharma\*, Pin-Yu Chen\*
+[On the Limitation of MagNet Defense against L1-based Adversarial Examples](https://arxiv.org/abs/1805.00310)
+by Pei-Hsuan Lu\*, Pin-Yu Chen\*, Kang-Cheng Chen\*, Chia-Mu Yu\* (IEEE/IFIP DSN 2018 Workshop)
+
 The experiment code is based on Carlini and Wagner's L2 attack. 
-The inception model is updated to a new version (`inception_v3_2016_08_28.tar.gz`).
 The attack (with EN rule) can also be found in the [Cleverhans Repository](http://cleverhans.readthedocs.io/en/latest/_modules/cleverhans/attacks.html#ElasticNetMethod).
 
 
@@ -36,7 +44,7 @@ Prepare the MNIST and CIFAR-10 data and models for attack:
 python3 train_models.py
 ```
 
-To download the inception model:
+To download the inception model (`inception_v3_2016_08_28.tar.gz`):
 
 ```
 python3 setup_inception.py
@@ -102,13 +110,12 @@ python3 test_attack.py -cf 50 -tm dd_100
 Adversarial Training
 -------------------------------------
 
-Adversarially train MNIST models by augmenting the training set with L2, EAD(L1), EAD(EN), L2+EAD(L1), and L2+EAD(EN)-based examples, respectively
+Adversarially train MNIST models by augmenting the training set with L2, EAD(L1), EAD(EN), L2+EAD(L1), and L2+EAD(EN)-based examples, respectively. This will use the provided numpy save files in the train directory.
 
 ```
 python3 train_models.py -d mnist -a
 ```
 
-This will use the provided numpy save files in the train directory. 
 Generate and save your own training set examples for use in adversarial training (ex - L1-oriented attack)
 
 ```
