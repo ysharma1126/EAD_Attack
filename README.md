@@ -16,13 +16,13 @@ by Yash Sharma\*, Pin-Yu Chen\*, Huan Zhang, Jinfeng Yi, Cho-Jui Hsieh (AAAI 201
 The attack has also been used in the following works (incomplete):
 
 [Attacking the Madry Defense Model with L1-based Adversarial Examples](https://arxiv.org/abs/1710.10733)
-by Yash Sharma\*, Pin-Yu Chen\* (ICLR 2018 Workshop)
+by Yash Sharma, Pin-Yu Chen (ICLR 2018 Workshop)
 
 [Bypassing Feature Squeezing by Increasing Adversary Strength](https://arxiv.org/abs/1803.09868)
-by Yash Sharma\*, Pin-Yu Chen\*
+by Yash Sharma, Pin-Yu Chen
 
 [On the Limitation of MagNet Defense against L1-based Adversarial Examples](https://arxiv.org/abs/1805.00310)
-by Pei-Hsuan Lu\*, Pin-Yu Chen\*, Kang-Cheng Chen\*, Chia-Mu Yu\* (IEEE/IFIP DSN 2018 Workshop)
+by Pei-Hsuan Lu, Pin-Yu Chen, Kang-Cheng Chen, Chia-Mu Yu (IEEE/IFIP DSN 2018 Workshop)
 
 The experiment code is based on Carlini and Wagner's L2 attack. 
 The attack (with EN rule) can also be found in the [Cleverhans Repository](http://cleverhans.readthedocs.io/en/latest/_modules/cleverhans/attacks.html#ElasticNetMethod).
