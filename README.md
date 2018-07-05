@@ -1,7 +1,4 @@
-**As requested by IBM, this repository is temporarily closed because
-part of the source code contains my internship work at IBM Research. We are working
-hard on obtaining a clearance for releasing the code as open-source software.
-Please contact Yash Sharma \<ysharma1126@gmail.com\> for the source code.**
+**As requested by IBM, this repository's code has been moved [here](https://github.com/IBM/EAD-Attack)**
 
 EAD: Elastic-Net Attacks to Deep Neural Networks 
 =====================================
