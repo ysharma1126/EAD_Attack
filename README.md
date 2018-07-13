@@ -26,5 +26,10 @@ by Yash Sharma, Pin-Yu Chen
 [On the Limitation of MagNet Defense against L1-based Adversarial Examples](https://arxiv.org/abs/1805.00310)
 by Pei-Hsuan Lu, Pin-Yu Chen, Kang-Cheng Chen, Chia-Mu Yu (IEEE/IFIP DSN 2018 Workshop)
 
-The experiment code is based on Carlini and Wagner's L2 attack. 
-The attack (with EN rule) can also be found in the [Cleverhans Repository](http://cleverhans.readthedocs.io/en/latest/_modules/cleverhans/attacks.html#ElasticNetMethod).
+The algorithm has also been repurposed for generating constrastive explanations in:
+
+[Explanations based on the Missing: Towards Contrastive Explanations with Pertinent Negatives](https://arxiv.org/abs/1802.07623)
+by Amit Dhurandhar, Pin-Yu Chen, Ronny Luss, Chun-Chen Tu, Paishun Ting, Karthikeyan Shanmugam and Payel Das
+
+The experiment code is based on Carlini and Wagner's L2 attack.  
+The attack can also be found in the [Cleverhans Repository](http://cleverhans.readthedocs.io/en/latest/_modules/cleverhans/attacks.html#ElasticNetMethod).
