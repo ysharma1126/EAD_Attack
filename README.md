@@ -1,3 +1,5 @@
+**As requested by IBM, this repository is moved to https://github.com/IBM/EAD-Attack, but we aim to keep both repositories synced up.** The code is released under Apache License v2.
+
 EAD: Elastic-Net Attacks to Deep Neural Networks 
 =====================================
 
