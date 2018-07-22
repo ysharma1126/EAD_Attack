@@ -92,6 +92,8 @@ to get a list of arguments and help. Note the default values provided as well.
 
 To generate best-case, average-case, and worst-case statistics, add "-tg 9" to command.
 
+For computational efficiency, maximize the batch size and fix 'initial_constant' to a large value, setting the number of binary search steps to 1.
+
 The following are some examples of attacks:
 
 Run the L1-oriented attack on the Inception model with 100 ImageNet images
