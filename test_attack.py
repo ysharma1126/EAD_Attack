@@ -383,7 +383,7 @@ if __name__ == "__main__":
 	parser.add_argument("-ae", "--abort_early", action='store_true', help="abort binary search step early when losses stop decreasing")
 	parser.add_argument("-cf", "--conf", type=int, default=0, help='Set confidence score margin')
 	parser.add_argument("-ic", "--init_const", type=float, default=1e-3, help='tradeoff constant')
-	parser.add_argument("-be", "--beta", type=float, default=1e-3, help='beta hyperparameter')
+	parser.add_argument("-be", "--beta", type=float, default=1e-2, help='beta hyperparameter')
 	parser.add_argument("-ep", "--eps", type=float, default=0., help='eps hyperparameter (if 0, find lowest eps where example is successful')	
 	parser.add_argument("-sh", "--show", action='store_true', help='save original and adversarial images to save directory')
 	parser.add_argument("-sn", "--save_np", action='store_true', help='save adversarial examples for evaluation')
