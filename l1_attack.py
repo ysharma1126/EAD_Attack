@@ -18,15 +18,13 @@ TARGETED = True          # should we target one specific class? or just be wrong
 CONFIDENCE = 0           # how strong the adversarial example should be
 INITIAL_CONST = 1e-3     # the initial constant c to pick as a first guess
 BETA = 1e-3              # Hyperparameter trading off L2 minimization for L1 minimization
-FISTA = True             # Use FISTA or ISTA (FISTA has better convergence properties, performs one more query per iteration than ISTA)
-
 
 class EADL1:
     def __init__(self, sess, model, batch_size=1, confidence = CONFIDENCE,
                  targeted = TARGETED, learning_rate = LEARNING_RATE,
                  binary_search_steps = BINARY_SEARCH_STEPS, max_iterations = MAX_ITERATIONS,
                  abort_early = ABORT_EARLY, 
-                 initial_const = INITIAL_CONST, beta = BETA, fista = FISTA):
+                 initial_const = INITIAL_CONST, beta = BETA):
         """
         EAD with L1 Decision Rule 
 
@@ -43,7 +41,6 @@ class EADL1:
         self.CONFIDENCE = confidence
         self.initial_const = initial_const
         self.batch_size = batch_size
-        self.fista = fista
         self.beta = beta
         self.beta_t = tf.cast(self.beta, tf.float32)
 
@@ -54,87 +51,77 @@ class EADL1:
         # these are variables to be more efficient in sending data to tf
         self.timg = tf.Variable(np.zeros(shape), dtype=tf.float32)
         self.newimg = tf.Variable(np.zeros(shape), dtype=tf.float32)
+        self.slack = tf.Variable(np.zeros(shape), dtype=tf.float32)
         self.tlab = tf.Variable(np.zeros((batch_size,num_labels)), dtype=tf.float32)
         self.const = tf.Variable(np.zeros(batch_size), dtype=tf.float32)
 
         # and here's what we use to assign them
         self.assign_timg = tf.placeholder(tf.float32, shape)
         self.assign_newimg = tf.placeholder(tf.float32, shape)
+        self.assign_slack = tf.placeholder(tf.float32, shape)
         self.assign_tlab = tf.placeholder(tf.float32, (batch_size,num_labels))
         self.assign_const = tf.placeholder(tf.float32, [batch_size])
         
         self.global_step = tf.Variable(0, trainable=False)
         self.global_step_t = tf.cast(self.global_step, tf.float32)
 
-        if self.fista:
-            self.slack = tf.Variable(np.zeros(shape), dtype=tf.float32)
-            self.assign_slack = tf.placeholder(tf.float32, shape)
-            var = self.slack
-        else:
-            var = self.newimg
-
-
-        """(Fast) Iterative Soft Thresholding"""
+        """Fast Iterative Soft Thresholding"""
         """--------------------------------"""
         self.zt = tf.divide(self.global_step_t, self.global_step_t+tf.cast(3, tf.float32))
 
-        cond1 = tf.cast(tf.greater(tf.subtract(var, self.timg),self.beta_t), tf.float32)
-        cond2 = tf.cast(tf.less_equal(tf.abs(tf.subtract(var,self.timg)),self.beta_t), tf.float32)
-        cond3 = tf.cast(tf.less(tf.subtract(var, self.timg),tf.negative(self.beta_t)), tf.float32)
+        cond1 = tf.cast(tf.greater(tf.subtract(self.slack, self.timg),self.beta_t), tf.float32)
+        cond2 = tf.cast(tf.less_equal(tf.abs(tf.subtract(self.slack,self.timg)),self.beta_t), tf.float32)
+        cond3 = tf.cast(tf.less(tf.subtract(self.slack, self.timg),tf.negative(self.beta_t)), tf.float32)
 
-        upper = tf.minimum(tf.subtract(var,self.beta_t), tf.cast(0.5, tf.float32))
-        lower = tf.maximum(tf.add(var,self.beta_t), tf.cast(-0.5, tf.float32))
+        upper = tf.minimum(tf.subtract(self.slack,self.beta_t), tf.cast(0.5, tf.float32))
+        lower = tf.maximum(tf.add(self.slack,self.beta_t), tf.cast(-0.5, tf.float32))
 
         self.assign_newimg = tf.multiply(cond1,upper)+tf.multiply(cond2,self.timg)+tf.multiply(cond3,lower)
+        self.assign_slack = self.assign_newimg+tf.multiply(self.zt, self.assign_newimg-self.newimg)
         self.setter = tf.assign(self.newimg, self.assign_newimg)
-        if self.fista: 
-            self.assign_slack = self.assign_newimg+tf.multiply(self.zt, self.assign_newimg-self.newimg)
-            self.setter_y = tf.assign(self.slack, self.assign_slack)
+        self.setter_y = tf.assign(self.slack, self.assign_slack)
         """--------------------------------"""
         # prediction BEFORE-SOFTMAX of the model
         self.output = model.predict(self.newimg)
+        self.output_y = model.predict(self.slack)
         
         # distance to the input data
         self.l2dist = tf.reduce_sum(tf.square(self.newimg-self.timg),[1,2,3])
+        self.l2dist_y = tf.reduce_sum(tf.square(self.slack-self.timg),[1,2,3])
         self.l1dist = tf.reduce_sum(tf.abs(self.newimg-self.timg),[1,2,3])
+        self.l1dist_y = tf.reduce_sum(tf.abs(self.slack-self.timg),[1,2,3])
         self.elasticdist = self.l2dist + tf.multiply(self.l1dist, self.beta_t)
+        self.elasticdist_y = self.l2dist_y + tf.multiply(self.l1dist_y, self.beta_t)
         
         # compute the probability of the label class versus the maximum other
         real = tf.reduce_sum((self.tlab)*self.output,1)
+        real_y = tf.reduce_sum((self.tlab)*self.output_y,1)
         other = tf.reduce_max((1-self.tlab)*self.output - (self.tlab*10000),1)
+        other_y = tf.reduce_max((1-self.tlab)*self.output_y - (self.tlab*10000),1)
         if self.TARGETED:
             # if targeted, optimize for making the other class most likely
             loss1 = tf.maximum(0.0, other-real+self.CONFIDENCE)
+            loss1_y = tf.maximum(0.0, other_y-real_y+self.CONFIDENCE)
         else:
             # if untargeted, optimize for making this class least likely.
             loss1 = tf.maximum(0.0, real-other+self.CONFIDENCE)
+            loss1_y = tf.maximum(0.0, real_y-other_y+self.CONFIDENCE)
 
         # sum up the losses
         self.loss21 = tf.reduce_sum(self.l1dist)
+        self.loss21_y = tf.reduce_sum(self.l1dist_y)
         self.loss2 = tf.reduce_sum(self.l2dist)
+        self.loss2_y = tf.reduce_sum(self.l2dist_y)
         self.loss1 = tf.reduce_sum(self.const*loss1)
+        self.loss1_y = tf.reduce_sum(self.const*loss1_y)
 
-        if self.fista:
-            self.output_y = model.predict(self.slack)
-            self.l2dist_y = tf.reduce_sum(tf.square(self.slack-self.timg),[1,2,3])
-
-            real_y = tf.reduce_sum((self.tlab)*self.output_y,1)
-            other_y = tf.reduce_max((1-self.tlab)*self.output_y - (self.tlab*10000),1)
-            if self.TARGETED:
-                loss1_y = tf.maximum(0.0, other_y-real_y+self.CONFIDENCE)
-            else:
-                loss1_y = tf.maximum(0.0, real_y-other_y+self.CONFIDENCE)
-            self.loss2_y = tf.reduce_sum(self.l2dist_y)
-            self.loss1_y = tf.reduce_sum(self.const*loss1_y)
-            self.loss_opt = self.loss1_y + self.loss2_y
-        else:
-            self.loss_opt = self.loss1 + self.loss2
+        self.loss_opt = self.loss1_y+self.loss2_y
         self.loss = self.loss1+self.loss2+tf.multiply(self.beta_t,self.loss21)
         
         self.learning_rate = tf.train.polynomial_decay(self.LEARNING_RATE, self.global_step, self.MAX_ITERATIONS, 0, power=0.5) 
         start_vars = set(x.name for x in tf.global_variables())
         optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
-        self.train = optimizer.minimize(self.loss_opt, var_list=[var], global_step=self.global_step)
+        self.train = optimizer.minimize(self.loss_opt, var_list=[self.slack], global_step=self.global_step)
         end_vars = tf.global_variables()
         new_vars = [x for x in end_vars if x.name not in start_vars]
 
@@ -144,10 +131,7 @@ class EADL1:
         self.setup.append(self.tlab.assign(self.assign_tlab))
         self.setup.append(self.const.assign(self.assign_const))
         
-        var_list = [self.global_step] + [self.newimg] + new_vars
-        if self.fista:
-            var_list += [self.slack]
-        self.init = tf.variables_initializer(var_list=var_list)
+        self.init = tf.variables_initializer(var_list=[self.global_step]+[self.slack]+[self.newimg]+new_vars)
 
     def attack(self, imgs, targets):
         """
@@ -187,7 +171,7 @@ class EADL1:
         CONST = np.ones(batch_size)*self.initial_const
         upper_bound = np.ones(batch_size)*1e10
 
-        # the best l1, score, and image attack
+        # the best l2, score, and image attack
         o_bestl1 = [1e10]*batch_size
         o_bestscore = [-1]*batch_size
         o_bestattack = [np.zeros(imgs[0].shape)]*batch_size
@@ -210,16 +194,13 @@ class EADL1:
                                        self.assign_tlab: batchlab,
                                        self.assign_const: CONST})
             self.sess.run(self.setter, feed_dict={self.assign_newimg: batch})
-            if self.fista:
-                self.sess.run(self.setter_y, feed_dict={self.assign_slack: batch})
+            self.sess.run(self.setter_y, feed_dict={self.assign_slack: batch})
             prev = 1e6
             for iteration in range(self.MAX_ITERATIONS):
                 # perform the attack 
                 self.sess.run([self.train])
-                if self.fista:
-                    _,_,l, l2s, l1s, elastic, scores, nimg = self.sess.run([self.setter, self.setter_y, self.loss, self.l2dist, self.l1dist, self.elasticdist, self.output, self.newimg])
-                else:
-                    _,l, l2s, l1s, elastic, scores, nimg = self.sess.run([self.setter, self.loss, self.l2dist, self.l1dist, self.elasticdist, self.output, self.newimg])
+                self.sess.run([self.setter, self.setter_y])
+                l, l2s, l1s, elastic, scores, nimg = self.sess.run([self.loss, self.l2dist, self.l1dist, self.elasticdist, self.output, self.newimg])
 
 
 
