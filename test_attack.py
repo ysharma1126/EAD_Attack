@@ -144,11 +144,11 @@ def main(args):
 				adv = attack.attack(inputs, targets)
 			if (args['attack'] == 'L1'):
 				attack = EADL1(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], initial_const=args['init_const'],
-					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], fista = not args['not_fista'], beta=args['beta'], abort_early=args['abort_early'])
+					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
 				adv = attack.attack(inputs, targets)
 			if (args['attack'] == 'EN'):
 				attack = EADEN(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], initial_const=args['init_const'], 
-					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], fista = not args['not_fista'], beta=args['beta'], abort_early=args['abort_early'])
+					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
 				adv = attack.attack(inputs, targets)
 
 			"""If untargeted, pass labels instead of targets"""
@@ -376,7 +376,6 @@ if __name__ == "__main__":
 	parser.add_argument("-s", "--save", default="./saves", help="save directory")
 	parser.add_argument("-a", "--attack", choices=["L2", "L1", "EN", "IFGSM", "IFGML1", "IFGML2", "FGSM", "FGML1", "FGML2"], default="EN", help="attack algorithm")
 	parser.add_argument("-n", "--numimg", type=int, default=1000, help = "number of images to attack")
-	parser.add_argument("-nf", "--not_fista", action='store_true', help='Use ISTA instead of FISTA (worse convergence properties, 1 query instead of 2 per iteration')
 	parser.add_argument("-m", "--maxiter", type=int, default=1000, help = "max iterations per bss")
 	parser.add_argument("-bs", "--binary_steps", type=int, default=9, help = "number of bss")
 	parser.add_argument("-b", "--batch_size", type=int, default=1, help= "batch size")

@@ -92,7 +92,7 @@ to get a list of arguments and help. Note the default values provided as well.
 
 To generate best-case, average-case, and worst-case statistics, add "-tg 9" to command.
 
-For computational efficiency, maximize the batch size and fix the 'initial_constant' (ex - 1e+1), setting the number of binary search steps to 1.
+For computational efficiency, maximize the batch size and fix the 'initial_constant' to a large value, setting the number of binary search steps to 1.
 
 The following are some examples of attacks:
 
