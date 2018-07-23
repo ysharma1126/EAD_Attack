@@ -144,11 +144,11 @@ def main(args):
 				adv = attack.attack(inputs, targets)
 			if (args['attack'] == 'L1'):
 				attack = EADL1(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], initial_const=args['init_const'],
-					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], fista = not args['not_fista'], beta=args['beta'], abort_early=args['abort_early'])
+					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
 				adv = attack.attack(inputs, targets)
 			if (args['attack'] == 'EN'):
 				attack = EADEN(sess, model, batch_size=args['batch_size'], max_iterations=args['maxiter'], confidence=args['conf'], initial_const=args['init_const'], 
-					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], fista = not args['not_fista'], beta=args['beta'], abort_early=args['abort_early'])
+					binary_search_steps=args['binary_steps'], targeted = not args['untargeted'], beta=args['beta'], abort_early=args['abort_early'])
 				adv = attack.attack(inputs, targets)
 
 			"""If untargeted, pass labels instead of targets"""
